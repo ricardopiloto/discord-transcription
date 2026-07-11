@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cronista/n8n-webhook",
+  "title": "N8nSessionEndedWebhook",
+  "description": "Payload POST disparado ao encerrar sessão (Content-Type: application/json)",
+  "type": "object",
+  "required": [
+    "session_id",
+    "guild_id",
+    "channel_id",
+    "started_at",
+    "ended_at",
+    "recordings_path",
+    "session_json_path",
+    "speaking_log_path",
+    "participants"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "pattern": "^\\d{8}-\\d{6}$"
+    },
+    "guild_id": { "type": "string" },
+    "channel_id": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "recordings_path": {
+      "type": "string",
+      "description": "Caminho absoluto do diretório da sessão"
+    },
+    "session_json_path": {
+      "type": "string",
+      "description": "Caminho absoluto de session.json"
+    },
+    "speaking_log_path": {
+      "type": "string",
+      "description": "Caminho absoluto de speaking_log.jsonl"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["user_id", "display_name", "utterance_count"],
+        "additionalProperties": false,
+        "properties": {
+          "user_id": { "type": "string" },
+          "display_name": { "type": "string" },
+          "utterance_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

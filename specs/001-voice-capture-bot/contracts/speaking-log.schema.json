@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cronista/speaking-log.jsonl",
+  "title": "SpeakingLogEntry",
+  "description": "Uma linha do arquivo speaking_log.jsonl (JSON Lines)",
+  "type": "object",
+  "required": ["user_id", "seq", "file", "start_ms", "end_ms", "duration_ms"],
+  "additionalProperties": false,
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Discord user snowflake"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Sequência por usuário na sessão"
+    },
+    "file": {
+      "type": "string",
+      "pattern": "^\\d+/\\d{4}\\.ogg$",
+      "description": "Caminho relativo ao diretório da sessão",
+      "examples": ["123456789/0001.ogg"]
+    },
+    "start_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Ms relativos a session.started_at"
+    },
+    "end_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Ms relativos a session.started_at"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "end_ms - start_ms"
+    }
+  }
+}

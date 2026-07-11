@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.env
+app/.env
+recordings/
+spike_out/
+*.log
+.DS_Store
+.specify/
+.cursor/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.venv-spike/
+app/.venv/
+.pytest_cache/
+*.egg-info/
+.ruff_cache/

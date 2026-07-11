@@ -1,0 +1,18 @@
+[Unit]
+Description=Cronista — bot de captura de voz Discord (Python)
+After=network.target
+
+[Service]
+Type=simple
+User=adminvtt
+WorkingDirectory=/opt/apps/cronista/app
+EnvironmentFile=/opt/apps/cronista/.env
+ExecStart=/opt/apps/cronista/.venv/bin/python -m cronista
+Restart=on-failure
+RestartSec=10
+
+# Gravações em disco — I/O leve, sem competir por CPU
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

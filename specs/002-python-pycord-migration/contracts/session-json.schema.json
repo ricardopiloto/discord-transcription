@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cronista/session.json",
+  "title": "Session",
+  "description": "Metadados de uma sessão de gravação do Cronista (idêntico à spec 001; preservado na migração Python)",
+  "type": "object",
+  "required": ["session_id", "guild_id", "channel_id", "started_at", "participants"],
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "pattern": "^\\d{8}-\\d{6}$",
+      "description": "Identificador baseado no horário de início (YYYYMMDD-HHmmss)",
+      "examples": ["20260710-220100"]
+    },
+    "guild_id": {
+      "type": "string",
+      "description": "Discord guild snowflake"
+    },
+    "channel_id": {
+      "type": "string",
+      "description": "Discord voice channel snowflake"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC, presente após encerramento"
+    },
+    "participants": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Participant" }
+    },
+    "webhook_failed": {
+      "type": "boolean",
+      "description": "true se notificação n8n falhou após retentativas"
+    }
+  },
+  "$defs": {
+    "Participant": {
+      "type": "object",
+      "required": ["user_id", "display_name", "utterance_count"],
+      "additionalProperties": false,
+      "properties": {
+        "user_id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "utterance_count": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
