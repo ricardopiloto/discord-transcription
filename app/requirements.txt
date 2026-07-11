@@ -1,5 +1,5 @@
-# Pin after spike PASS — default candidate: py-cord stable with voice extras
-py-cord[voice]>=2.6.0
+# py-cord 2.8.0 (PyPI) não decodifica áudio sob DAVE — PR #3202 obrigatório até merge oficial
+py-cord[voice] @ git+https://github.com/Pycord-Development/pycord@refs/pull/3202/head
 aiohttp>=3.9.0
 python-dotenv>=1.0.0
 

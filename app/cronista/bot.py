@@ -113,6 +113,7 @@ def create_bot(config: Config, session_manager: SessionManager) -> discord.Clien
         if before.channel and str(before.channel.id) == session.channel_id:
             _schedule_auto_end(member.guild)
         if after.channel and str(after.channel.id) == session.channel_id:
+            await session_manager.register_voice_channel_member(member)
             _schedule_auto_end(member.guild)
 
     return client

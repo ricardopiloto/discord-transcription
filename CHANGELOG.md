@@ -14,9 +14,30 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ---
 
+## [0.1.3] - 2026-07-11
+
+> **Status**: participantes + recepção DAVE corrigidos — aguardando revalidação com áudio ao vivo.
+
+### Fixed
+
+- **Participantes não apareciam em `session.json` / `!cronista status`** — bot não usa `members` intent; participantes do canal são pré-registrados ao iniciar, novos entrantes são registrados via `on_voice_state_update`, e resolução de nome usa `voice_channel.members` → `fetch_member` → `fetch_user` → fallback (`app/cronista/recording/sink.py`, `app/cronista/session_manager.py`, `app/cronista/bot.py`)
+- **Gravação ignorada sem `Member` no cache** — user_id obtido via mapeamento SSRC quando py-cord envia `source=None`
+- **Nenhum arquivo de áudio gerado sob DAVE** — py-cord 2.8.0 (PyPI) não decodifica frames criptografados; `requirements.txt` passa a usar PR #3202 com fix de recepção DAVE
+- Logs de diagnóstico no sink quando pacotes PCM chegam (ou quando user_id não está mapeado)
+
+### Changed
+
+- Dependência de voz: `py-cord[voice]` instalado a partir do PR #3202 até merge oficial na release estável
+
+### Added
+
+- Testes unitários para resolução de participante e extração de user_id via SSRC (`app/tests/unit/test_sink.py`)
+
+---
+
 ## [0.1.2] - 2026-07-11
 
-> **Status**: correção do `start_recording` em produção — aguardando revalidação com `!cronista entrar`.
+> **Status**: `!cronista entrar` funcional em produção após fix do `start_recording`.
 
 ### Fixed
 

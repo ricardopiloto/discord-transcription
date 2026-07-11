@@ -55,6 +55,7 @@ class IncrementalUtteranceSink(Sink):
         utterance_silence_ms: int,
         bot_user_id: str,
         guild: discord.Guild,
+        voice_channel: discord.VoiceChannel,
         loop: asyncio.AbstractEventLoop,
         on_participant: OnParticipant,
         on_utterance_complete: OnUtteranceComplete,
@@ -66,6 +67,7 @@ class IncrementalUtteranceSink(Sink):
         self.utterance_silence_ms = utterance_silence_ms
         self.bot_user_id = bot_user_id
         self.guild = guild
+        self.voice_channel = voice_channel
         self.loop = loop
         self.on_participant = on_participant
         self.on_utterance_complete = on_utterance_complete
@@ -74,6 +76,8 @@ class IncrementalUtteranceSink(Sink):
         self.open_utterances: dict[str, OpenUtterance] = {}
         self.timers: dict[str, threading.Timer] = {}
         self._lock = threading.Lock()
+        self.packets_received = 0
+        self.pcm_bytes_received = 0
 
     def walk_children(self, *, with_self: bool = False) -> Iterator[IncrementalUtteranceSink]:
         if with_self:
@@ -101,26 +105,59 @@ class IncrementalUtteranceSink(Sink):
         self.timers[user_id] = timer
         timer.start()
 
-    async def _resolve_member(self, user_id: str) -> discord.Member | None:
-        member = self.guild.get_member(int(user_id))
-        if member is None:
-            try:
-                member = await self.guild.fetch_member(int(user_id))
-            except discord.HTTPException:
-                return None
-        if member.user.bot:
-            return None
-        return member
+    def _find_member(self, user_id: int) -> discord.Member | None:
+        for member in self.voice_channel.members:
+            if member.id == user_id:
+                return member
+        return self.guild.get_member(user_id)
+
+    async def _resolve_display_name(self, user_id: str) -> str:
+        uid = int(user_id)
+        member = self._find_member(uid)
+        if member is not None and not member.bot:
+            return member.display_name or member.name
+
+        try:
+            member = await self.guild.fetch_member(uid)
+            if not member.bot:
+                return member.display_name or member.name
+        except discord.HTTPException:
+            pass
+
+        try:
+            user = await self.guild.fetch_user(uid)
+            return user.display_name or user.name
+        except discord.HTTPException:
+            logger.warning("[recorder] Não foi possível resolver nome do usuário %s", user_id)
+            return f"user-{user_id}"
+
+    def _extract_user_id(self, data, user) -> int | None:
+        if user is not None:
+            raw_user_id = getattr(user, "id", user)
+            if raw_user_id is not None:
+                return int(raw_user_id)
+
+        packet = getattr(data, "packet", None)
+        voice_client = self.vc
+        if packet is not None and voice_client is not None:
+            ssrc = getattr(packet, "ssrc", None)
+            if ssrc is not None:
+                mapped = voice_client._ssrc_to_id.get(ssrc)
+                if mapped is not None:
+                    return int(mapped)
+        return None
+
+    def _is_bot_user(self, user_id: int) -> bool:
+        if str(user_id) == self.bot_user_id:
+            return True
+        member = self._find_member(user_id)
+        return member is not None and member.bot
 
     async def _start_utterance(self, user_id: str) -> None:
         if user_id in self.open_utterances:
             return
 
-        member = await self._resolve_member(user_id)
-        if member is None:
-            return
-
-        display_name = member.display_name or member.name
+        display_name = await self._resolve_display_name(user_id)
         await self.on_participant(user_id, display_name)
 
         seq = self.seq_counters.get(user_id, 0) + 1
@@ -148,21 +185,36 @@ class IncrementalUtteranceSink(Sink):
         if not pcm:
             return
 
-        raw_user_id = getattr(user, "id", user)
+        self.packets_received += 1
+        self.pcm_bytes_received += len(pcm)
+        if self.packets_received == 1:
+            logger.info("[recorder] Primeiro pacote de áudio recebido (%s bytes PCM)", len(pcm))
+        elif self.packets_received % 500 == 0:
+            logger.info(
+                "[recorder] %s pacotes recebidos (%s bytes PCM acumulados)",
+                self.packets_received,
+                self.pcm_bytes_received,
+            )
+
+        raw_user_id = self._extract_user_id(data, user)
         if raw_user_id is None:
+            if self.packets_received <= 5:
+                logger.warning("[recorder] Pacote de áudio sem user_id mapeado (ssrc/user ausente)")
+            return
+
+        if self._is_bot_user(raw_user_id):
             return
 
         user_id = str(raw_user_id)
-        if user_id == self.bot_user_id:
-            return
-
-        member = self.guild.get_member(int(raw_user_id))
-        if member is not None and member.bot:
-            return
 
         with self._lock:
             if user_id not in self.open_utterances:
-                asyncio.run_coroutine_threadsafe(self._start_utterance(user_id), self.loop).result()
+                future = asyncio.run_coroutine_threadsafe(self._start_utterance(user_id), self.loop)
+                try:
+                    future.result(timeout=10)
+                except Exception:
+                    logger.exception("[recorder] Falha ao iniciar utterance para %s", user_id)
+                    return
 
             open_ut = self.open_utterances.get(user_id)
             if open_ut is not None:

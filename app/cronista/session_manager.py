@@ -81,6 +81,7 @@ class SessionManager:
             utterance_silence_ms=self.config.utterance_silence_ms,
             bot_user_id=bot_user_id,
             guild=member.guild,
+            voice_channel=channel,
             loop=loop,
             on_participant=self.register_participant,
             on_utterance_complete=self.increment_utterance_count,
@@ -91,6 +92,8 @@ class SessionManager:
         except Exception:
             self._reset()
             raise
+
+        await self._register_channel_members(channel)
 
         logger.info("[session] Iniciada %s no canal %s", session_id, channel.name)
         return self.session
@@ -139,8 +142,18 @@ class SessionManager:
         try:
             await ensure_user_dir(self.session_dir, user_id)
             await write_session_json(self.session_dir, self.session)
+            logger.info("[session] Participante registrado: %s (%s)", display_name, user_id)
         except OSError as exc:
             logger.error("[session] Falha ao registrar participante %s: %s", user_id, exc)
+
+    async def register_voice_channel_member(self, member: discord.Member) -> None:
+        if member.bot:
+            return
+        await self.register_participant(str(member.id), member.display_name or member.name)
+
+    async def _register_channel_members(self, channel: discord.VoiceChannel) -> None:
+        for member in channel.members:
+            await self.register_voice_channel_member(member)
 
     async def increment_utterance_count(self, user_id: str) -> None:
         if self.session is None or self.session_dir is None:
