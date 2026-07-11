@@ -24,6 +24,8 @@ SAMPLE_WIDTH = 2
 class SpikeSink(Sink):
     """Minimal sink: write PCM per user to WAV, count packets."""
 
+    __sink_listeners__: list[tuple[str, str]] = []
+
     def __init__(self, output_dir: Path) -> None:
         super().__init__()
         self.output_dir = output_dir
@@ -31,6 +33,10 @@ class SpikeSink(Sink):
         self.packets_received = 0
         self._writers: dict[int, tuple[wave.Wave_write, Path]] = {}
         self._packet_counts: dict[int, int] = {}
+
+    def walk_children(self, *, with_self: bool = False):
+        if with_self:
+            yield self
 
     def write(self, data, user) -> None:
         pcm = getattr(data, "pcm", data)
@@ -105,6 +111,7 @@ async def run_spike(args: argparse.Namespace) -> dict:
         def finished(_exception: Exception | None) -> None:
             print("[spike] Recording finished callback")
 
+        sink.init(vc)
         vc.start_recording(sink, finished)
         print(f"[spike] Recording for {args.seconds}s — speak now!")
         await asyncio.sleep(args.seconds)

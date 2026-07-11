@@ -48,16 +48,28 @@ async def handle_entrar(
         return
 
     voice_client = await channel.connect()
-    await member.guild.change_voice_state(channel=channel, self_deaf=False, self_mute=True)
+    await channel.guild.change_voice_state(
+        channel=channel, self_deaf=False, self_mute=True
+    )
+    loop = asyncio.get_running_loop()
     try:
-        loop = asyncio.get_running_loop()
-        session = await session_manager.start(member, voice_client, channel, str(bot_user.id), loop)
+        session = await session_manager.start(
+            member, voice_client, channel, str(bot_user.id), loop
+        )
+    except Exception:
+        if voice_client.is_connected():
+            await voice_client.disconnect(force=True)
+        raise
+
+    try:
         await message.reply(
             f"Gravação iniciada — sessão `{session.session_id}` no canal **{channel.name}**."
         )
     except Exception:
-        await voice_client.disconnect(force=True)
-        raise
+        await message.reply(
+            f"Gravação iniciada — sessão `{session.session_id}`, "
+            "mas não consegui enviar a confirmação completa."
+        )
 
 
 async def handle_encerrar(

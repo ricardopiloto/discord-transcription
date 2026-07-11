@@ -9,9 +9,10 @@ import subprocess
 import threading
 import time
 import wave
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, ClassVar
 
 import discord
 from discord.sinks import Sink
@@ -42,6 +43,9 @@ class OpenUtterance:
 class IncrementalUtteranceSink(Sink):
     """Custom sink: PCM chunks written incrementally; utterance closed on silence."""
 
+    # py-cord 2.8 voice receive router expects these on every sink subclass.
+    __sink_listeners__: ClassVar[list[tuple[str, str]]] = []
+
     def __init__(
         self,
         *,
@@ -70,6 +74,13 @@ class IncrementalUtteranceSink(Sink):
         self.open_utterances: dict[str, OpenUtterance] = {}
         self.timers: dict[str, threading.Timer] = {}
         self._lock = threading.Lock()
+
+    def walk_children(self, *, with_self: bool = False) -> Iterator[IncrementalUtteranceSink]:
+        if with_self:
+            yield self
+
+    def cleanup(self) -> None:
+        self.finished = True
 
     def _elapsed_ms(self) -> int:
         return int((time.monotonic() - self.session_started_monotonic) * 1000)

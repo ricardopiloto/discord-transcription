@@ -14,9 +14,26 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ---
 
+## [0.1.2] - 2026-07-11
+
+> **Status**: correção do `start_recording` em produção — aguardando revalidação com `!cronista entrar`.
+
+### Fixed
+
+- **`!cronista entrar` falhava após conectar ao canal** — py-cord 2.8 exige `__sink_listeners__` e `walk_children()` em sinks customizados; ausência desses atributos gerava `AttributeError` silencioso e desconectava o bot (`app/cronista/recording/sink.py`, `spike/record_smoke.py`)
+- **Sessão órfã em memória** — falha parcial em `SessionManager.start()` deixava `is_recording=True` sem gravação ativa; rollback via `_reset()` adicionado
+- **`reply` de confirmação derrubava a gravação** — erro ao enviar mensagem de sucesso não desconecta mais o canal de voz (`app/cronista/commands.py`)
+- **Sink sem referência ao voice client** — `sink.init(voice_client)` chamado antes de `start_recording` (`app/cronista/session_manager.py`)
+
+### Added
+
+- Teste unitário de compatibilidade do sink com o router de voz do py-cord 2.8 (`app/tests/unit/test_sink.py`)
+
+---
+
 ## [0.1.1] - 2026-07-11
 
-> **Status**: correções de deploy e voz em teste de produção — `!cronista entrar` funcional após fix da API py-cord 2.8.
+> **Status**: conectava ao canal de voz, mas `start_recording` ainda quebrava em produção (corrigido em 0.1.2).
 
 ### Fixed
 

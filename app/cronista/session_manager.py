@@ -85,7 +85,12 @@ class SessionManager:
             on_participant=self.register_participant,
             on_utterance_complete=self.increment_utterance_count,
         )
-        voice_client.start_recording(self.sink, recording_finished)
+        try:
+            self.sink.init(voice_client)
+            voice_client.start_recording(self.sink, recording_finished)
+        except Exception:
+            self._reset()
+            raise
 
         logger.info("[session] Iniciada %s no canal %s", session_id, channel.name)
         return self.session
@@ -109,6 +114,10 @@ class SessionManager:
             logger.error("[session] Falha ao persistir session.json no encerramento: %s", exc)
 
         finished = self.session
+        self._reset()
+        return finished
+
+    def _reset(self) -> None:
         self.session = None
         self.session_dir = None
         self.speaking_log = None
@@ -116,8 +125,6 @@ class SessionManager:
         self.sink = None
         self.started_monotonic = 0.0
         self._loop = None
-
-        return finished
 
     async def register_participant(self, user_id: str, display_name: str) -> None:
         if self.session is None or self.session_dir is None:

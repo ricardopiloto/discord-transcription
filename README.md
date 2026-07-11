@@ -4,7 +4,7 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.1**.
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.2**.
 
 ## Stack
 
