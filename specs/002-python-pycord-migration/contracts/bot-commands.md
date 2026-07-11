@@ -26,9 +26,9 @@ Inicia gravação no canal de voz do autor.
 | Sucesso | "Gravação iniciada — sessão `{session_id}` no canal **{channel_name}**." |
 
 **Side effects**:
-- Bot entra no canal (surdo=false para receber, mudo=true)
+- Bot entra no canal e aplica voice state `self_deaf=False`, `self_mute=True`
 - Cria `{RECORDINGS_DIR}/{session_id}/session.json`
-- Inicia recording com sink customizado (`vc.start_recording(sink, callback, channel)`)
+- Inicia recording com sink customizado (`vc.start_recording(sink, callback)`)
 
 ---
 

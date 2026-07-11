@@ -8,7 +8,6 @@ import time
 from datetime import datetime, timezone
 
 import discord
-from discord.sinks import Sink
 
 from cronista.config import Config
 from cronista.recording.sink import IncrementalUtteranceSink
@@ -71,7 +70,7 @@ class SessionManager:
         )
         await write_session_json(self.session_dir, self.session)
 
-        def recording_finished(_sink: Sink, _channel, exception: Exception | None) -> None:
+        def recording_finished(exception: Exception | None) -> None:
             if exception:
                 logger.error("[session] Recording error: %s", exception)
 
@@ -86,7 +85,7 @@ class SessionManager:
             on_participant=self.register_participant,
             on_utterance_complete=self.increment_utterance_count,
         )
-        voice_client.start_recording(self.sink, recording_finished, channel)
+        voice_client.start_recording(self.sink, recording_finished)
 
         logger.info("[session] Iniciada %s no canal %s", session_id, channel.name)
         return self.session

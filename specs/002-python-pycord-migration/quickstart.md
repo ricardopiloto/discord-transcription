@@ -10,7 +10,7 @@ Referências: [spec.md](./spec.md) · [research.md](./research.md) · [data-mode
 ## Prerequisites
 
 1. **Python 3.11+** com `venv`
-2. **Bot Discord** com token próprio (distinto do Robigode/Bertroldo); intents: Server Members, Message Content, Voice
+2. **Bot Discord** configurado no Developer Portal (intents + convite) — ver README seção "Configuração do bot Discord"
 3. **Canal de voz de teste** com DAVE ativo e permissões: Connect, View Channel, Send Messages
 4. **2+ contas** para falar durante os testes
 5. **(Opcional)** webhook n8n de teste ou [webhook.site](https://webhook.site)
@@ -206,17 +206,22 @@ watch -n 30 'ps -o rss= -p $(pgrep -f "python -m cronista")'
 
 ## Cutover & Rollback (US5, FR-015, FR-016)
 
+Deploy por **clone git direto no servidor** em `/opt/apps/cronista` (venv e `.env` na raiz do clone, fora do git). Passo a passo completo na seção "Deploy (produção)" do `README.md`.
+
 ```bash
-# Deploy Python
-npm_stop() { sudo systemctl stop cronista; }   # para a unit Node atual
-sudo mkdir -p /opt/apps/cronista
-sudo rsync -a app/ /opt/apps/cronista/app/
-cd /opt/apps/cronista/app && python3.11 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
-sudo cp deploy/cronista.service /etc/systemd/system/     # ExecStart → venv python -m cronista
+# Resumo
+sudo git clone <url-do-repositorio> /opt/apps/cronista
+sudo chown -R adminvtt:adminvtt /opt/apps/cronista
+cd /opt/apps/cronista
+python3.11 -m venv .venv && .venv/bin/pip install -r app/requirements.txt
+cp .env.example .env    # DISCORD_TOKEN, N8N_WEBHOOK_URL, RECORDINGS_DIR=/opt/apps/cronista/recordings
+sudo cp deploy/cronista.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now cronista
 sudo journalctl -u cronista -f
 ```
 
-**Rollback**: se a sessão piloto falhar, reativar a unit Node anterior (ExecStart node) e investigar antes de nova tentativa.
+**Atualização**: `git pull` + reinstalar requirements (se mudaram) + `systemctl restart cronista`.
 
-**Aposentar Node (FR-016)** — somente após sessão piloto Python bem-sucedida: remover `src/`, `tests/` (node), `package.json`, `tsconfig.json`, `eslint.config.js` e atualizar `README.md`.
+**Rollback**: `git checkout <commit-ou-tag estável>` no clone, reinstalar requirements e reiniciar o serviço — `.env`, `.venv/` e `recordings/` não são afetados. Se a sessão piloto falhar, manter o serviço parado e investigar logs antes de nova tentativa.
+
+**Nota (FR-016)**: a stack Node legada já foi removida do repositório; a referência histórica permanece em `specs/001-voice-capture-bot/`.

@@ -47,7 +47,8 @@ async def handle_entrar(
         await message.reply("Bot ainda não está pronto. Tente novamente em instantes.")
         return
 
-    voice_client = await channel.connect(self_deaf=False, self_mute=True)
+    voice_client = await channel.connect()
+    await member.guild.change_voice_state(channel=channel, self_deaf=False, self_mute=True)
     try:
         loop = asyncio.get_running_loop()
         session = await session_manager.start(member, voice_client, channel, str(bot_user.id), loop)

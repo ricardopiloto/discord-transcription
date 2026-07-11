@@ -4,7 +4,7 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.0** (pré-validação).
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.1**.
 
 ## Stack
 
@@ -13,9 +13,85 @@ Python 3.11+ / py-cord — código em `app/cronista/`
 ## Requisitos
 
 - Python 3.11+
-- Token de bot Discord com intents: `Guilds`, `Guild Voice States`, `Guild Messages`, `Message Content`
+- Bot Discord configurado no Developer Portal (ver seção abaixo)
 - `ffmpeg` no PATH (conversão PCM→Opus por utterance; fallback grava `.wav` se ausente)
 - venv Python **isolado** — não compartilhar com Bertroldo (conflito de namespace `discord`)
+
+## Configuração do bot Discord
+
+O Cronista usa **token próprio**, distinto do Bertroldo e do Robigode. Siga estes passos uma vez; depois disso, só o `.env` precisa do token.
+
+### 1. Criar a aplicação
+
+1. Abra o [Discord Developer Portal](https://discord.com/developers/applications).
+2. **New Application** → nome sugerido: `Cronista`.
+3. Em **App ID** (Settings → General Information), copie o ID — é o `DISCORD_CLIENT_ID` (útil para gerar o link de convite).
+
+### 2. Criar o usuário bot
+
+1. Menu lateral → **Bot** → **Add Bot**.
+2. **Reset Token** → copie o token e guarde em local seguro. Esse valor vai em `DISCORD_TOKEN` no `.env`.
+3. **Nunca** commite o token no git.
+
+### 3. Ativar intents (obrigatório)
+
+Ainda em **Bot**, em **Privileged Gateway Intents**, ative:
+
+| Intent | Obrigatório? | Motivo |
+|--------|--------------|--------|
+| **Message Content Intent** | **Sim** | Ler comandos `!cronista` em texto |
+| Server Members Intent | Não | Cronista não usa |
+| Presence Intent | Não | Cronista não usa |
+
+As intents padrão (`Guilds`, `Guild Voice States`, `Guild Messages`) já vêm habilitadas e são usadas pelo código.
+
+Salve as alterações no portal.
+
+### 4. Convidar o bot para o servidor
+
+1. Menu lateral → **OAuth2** → **URL Generator**.
+2. **Scopes**: marque `bot`.
+3. **Bot Permissions** (mínimo para o Cronista):
+
+| Permissão | Uso |
+|-----------|-----|
+| View Channels | Ver canais de voz e texto |
+| Send Messages | Responder aos comandos |
+| Read Message History | Ler `!cronista` no chat |
+| Connect | Entrar no canal de voz |
+| Speak | Recomendado (bot entra mudo, mas alguns servidores exigem) |
+
+4. Copie a URL gerada, abra no navegador e adicione o bot ao **servidor da mesa de RPG**.
+
+Link manual (substitua `SEU_CLIENT_ID`):
+
+```text
+https://discord.com/api/oauth2/authorize?client_id=SEU_CLIENT_ID&permissions=3214336&scope=bot
+```
+
+(`3214336` = View Channels + Send Messages + Read Message History + Connect + Speak)
+
+### 5. Preencher o `.env`
+
+```bash
+cp .env.example .env
+```
+
+| Variável | Valor |
+|----------|-------|
+| `DISCORD_TOKEN` | Token copiado no passo 2 |
+| `DISCORD_CLIENT_ID` | App ID (opcional; só referência/convite) |
+| `RECORDINGS_DIR` | `./recordings` (local) ou `/opt/apps/cronista/recordings` (produção) |
+| `N8N_WEBHOOK_URL` | URL do webhook n8n (opcional; se vazio, notificação é ignorada) |
+
+### 6. Verificar
+
+1. Inicie o bot (`python -m cronista` localmente ou `systemctl start cronista` em produção).
+2. No log deve aparecer: `[bot] Conectado como Cronista#XXXX`.
+3. Entre em um canal de voz de teste e envie `!cronista entrar` em um canal de texto do mesmo servidor.
+4. O bot deve entrar no canal e responder com o `session_id`.
+
+**Coexistência**: Cronista, Bertroldo e Robigode podem estar no mesmo canal de voz — cada um usa token e conexão independentes.
 
 ## Setup local (Python)
 
@@ -25,7 +101,7 @@ python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-cp ../.env.example .env   # ajustar DISCORD_TOKEN, N8N_WEBHOOK_URL
+cp ../.env.example .env   # ver seção "Configuração do bot Discord" para DISCORD_TOKEN
 python -m cronista
 ```
 
@@ -73,24 +149,67 @@ Validação manual end-to-end: [specs/002-python-pycord-migration/quickstart.md]
 
 ## Deploy (produção)
 
-Serviço systemd independente em `/opt/apps/cronista/`, venv próprio, usuário `adminvtt`.
+Serviço systemd independente, usuário `adminvtt`, com o **repositório clonado diretamente em `/opt/apps/cronista`**. O venv e o `.env` vivem na raiz do clone (ambos ignorados pelo git), nos caminhos que o `deploy/cronista.service` já espera:
+
+```
+/opt/apps/cronista/          # clone do repositório
+├── app/                     # código Python (WorkingDirectory do serviço)
+├── .venv/                   # venv isolado (criado no servidor, fora do git)
+├── .env                     # config de produção (fora do git)
+└── recordings/              # gravações (RECORDINGS_DIR)
+```
+
+### Primeira instalação
 
 ```bash
-sudo mkdir -p /opt/apps/cronista
-sudo rsync -a app/ /opt/apps/cronista/app/
-cd /opt/apps/cronista/app && python3.11 -m venv ../.venv
-source ../.venv/bin/activate && pip install -r requirements.txt
+# 1. Clonar o repositório
+sudo mkdir -p /opt/apps
+sudo git clone <url-do-repositorio> /opt/apps/cronista
+sudo chown -R adminvtt:adminvtt /opt/apps/cronista
+
+# 2. Criar o venv isolado (não compartilhar com o Bertroldo)
+cd /opt/apps/cronista
+python3.11 -m venv .venv
+.venv/bin/pip install -r app/requirements.txt
+
+# 3. Configurar ambiente de produção
+cp .env.example .env
+# Editar .env — ver README seção "Configuração do bot Discord":
+#   DISCORD_TOKEN, N8N_WEBHOOK_URL, RECORDINGS_DIR=/opt/apps/cronista/recordings
+
+# 4. Instalar e iniciar o serviço
 sudo cp deploy/cronista.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now cronista
+sudo systemctl daemon-reload
+sudo systemctl enable --now cronista
+
+# 5. Acompanhar logs
+sudo journalctl -u cronista -f
+```
+
+### Atualizações
+
+```bash
+cd /opt/apps/cronista
+sudo systemctl stop cronista
+git pull
+.venv/bin/pip install -r app/requirements.txt   # se as dependências mudaram
+sudo systemctl start cronista
 ```
 
 ### Rollback
 
-Se o cutover falhar antes da sessão piloto:
+Como o deploy é um clone git, voltar de versão é um checkout:
 
-1. `sudo systemctl stop cronista`
-2. Restaurar versão anterior do serviço a partir do histórico git (`deploy/cronista.service`) ou manter serviço parado
-3. Investigar spike/logs antes de nova tentativa
+```bash
+cd /opt/apps/cronista
+sudo systemctl stop cronista
+git log --oneline            # identificar o commit/tag estável anterior
+git checkout <commit-ou-tag>
+.venv/bin/pip install -r app/requirements.txt
+sudo systemctl start cronista
+```
+
+Se o problema for no serviço em si, mantenha-o parado (`sudo systemctl stop cronista`) e investigue os logs antes de nova tentativa. O `.env`, o `.venv/` e as gravações em `recordings/` não são afetados por checkouts.
 
 ## Arquitetura (Python)
 

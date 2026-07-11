@@ -132,12 +132,20 @@ class IncrementalUtteranceSink(Sink):
             wav=wav,
         )
 
-    def write(self, data: bytes, user: int) -> None:
-        user_id = str(user)
+    def write(self, data, user) -> None:
+        pcm = getattr(data, "pcm", data)
+        if not pcm:
+            return
+
+        raw_user_id = getattr(user, "id", user)
+        if raw_user_id is None:
+            return
+
+        user_id = str(raw_user_id)
         if user_id == self.bot_user_id:
             return
 
-        member = self.guild.get_member(user)
+        member = self.guild.get_member(int(raw_user_id))
         if member is not None and member.bot:
             return
 
@@ -147,7 +155,7 @@ class IncrementalUtteranceSink(Sink):
 
             open_ut = self.open_utterances.get(user_id)
             if open_ut is not None:
-                open_ut.wav.writeframes(data)
+                open_ut.wav.writeframes(pcm)
 
             self._schedule_close(user_id)
 

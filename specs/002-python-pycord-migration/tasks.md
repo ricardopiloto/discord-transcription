@@ -90,7 +90,7 @@ Nova stack Python em `app/cronista/`; spike descartável em `spike/`; legado Nod
 - [x] T019 [US2] Implement `SessionManager` in `app/cronista/session.py`: `start(member, channel, voice_client)`, `end()`, `active_session`, `is_recording`, single-session guard
 - [x] T020 [US2] Implement `app/cronista/commands.py`: `handle_entrar`, `handle_encerrar`, `handle_status`, `handle_help` with responses from `contracts/bot-commands.md`
 - [x] T021 [US2] Implement `app/cronista/bot.py`: create `discord.Bot`/`commands.Bot` with intents (guilds, voice_states, messages, message_content); route `!cronista` prefix
-- [x] T022 [US2] Wire `entrar` in `app/cronista/commands.py`: validate author in voice channel, `channel.connect(self_deaf=False, self_mute=True)`, call `SessionManager.start`, reply with session_id
+- [x] T022 [US2] Wire `entrar` in `app/cronista/commands.py`: validate author in voice channel, `channel.connect()` + `guild.change_voice_state(self_deaf=False, self_mute=True)`, call `SessionManager.start`, reply with session_id
 - [x] T023 [US2] Wire `status` and `encerrar` in `app/cronista/commands.py`: duration formatting, participant count, session guard messages
 - [x] T024 [US2] Complete `app/cronista/__main__.py`: load dotenv, create bot, `bot.run(token)`
 
@@ -112,7 +112,7 @@ Nova stack Python em `app/cronista/`; spike descartável em `spike/`; legado Nod
 - [x] T028 [US3] In `app/cronista/recording/sink.py`: encode PCM to `.ogg` (Opus) on utterance close per research R2; write to `{session_dir}/{user_id}/{NNNN}.ogg`
 - [x] T029 [US3] On utterance close in sink: append `SpeakingLogEntry` to `speaking_log.jsonl`, call `register_participant`, increment `utterance_count`, rewrite `session.json`
 - [x] T030 [US3] Filter bot users in `app/cronista/recording/sink.py` (skip Cronista, Robigode, other bots)
-- [x] T031 [US3] Integrate sink in `SessionManager.start()` in `app/cronista/session.py`: `voice_client.start_recording(sink, callback, channel)`
+- [x] T031 [US3] Integrate sink in `SessionManager.start()` in `app/cronista/session.py`: `voice_client.start_recording(sink, callback)`
 - [x] T032 [US3] Integrate `voice_client.stop_recording()` in `SessionManager.end()`: flush open writers, finalize partial utterances
 
 **Checkpoint**: Captura incremental funcional; arquivos por utterance durante sessão.
@@ -261,6 +261,6 @@ Task T018: "Port tests to app/tests/unit/test_storage.py"
 
 - Referência funcional Node em `src/` — usar para portar comportamento, não como base de produção (FR-016)
 - Sink recebe PCM decodificado (research R2) — encode Opus por utterance, não assumir passthrough Opus
-- `self_deaf=False` obrigatório para receber áudio (contracts/bot-commands.md)
+- `self_deaf=False` é aplicado via `guild.change_voice_state(...)` após conectar (py-cord 2.8 não aceita esses flags em `connect()`)
 - venv Cronista MUST NOT be shared with Bertroldo (Constitution V)
 - Commit after each task or logical group; stop at any checkpoint to validate story independently

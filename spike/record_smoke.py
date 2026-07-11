@@ -32,7 +32,15 @@ class SpikeSink(Sink):
         self._writers: dict[int, tuple[wave.Wave_write, Path]] = {}
         self._packet_counts: dict[int, int] = {}
 
-    def write(self, data: bytes, user: int) -> None:
+    def write(self, data, user) -> None:
+        pcm = getattr(data, "pcm", data)
+        if not pcm:
+            return
+
+        user = getattr(user, "id", user)
+        if user is None:
+            return
+
         self.packets_received += 1
         self._packet_counts[user] = self._packet_counts.get(user, 0) + 1
 
@@ -46,7 +54,7 @@ class SpikeSink(Sink):
             wav.setframerate(SAMPLE_RATE)
             self._writers[user] = (wav, wav_path)
 
-        self._writers[user][0].writeframes(data)
+        self._writers[user][0].writeframes(pcm)
 
     def cleanup(self) -> None:
         for wav, _path in self._writers.values():
@@ -91,12 +99,13 @@ async def run_spike(args: argparse.Namespace) -> dict:
             return
 
         print(f"[spike] Joining {channel.name} ({channel_id})")
-        vc = await channel.connect(self_deaf=False, self_mute=True)
+        vc = await channel.connect()
+        await channel.guild.change_voice_state(channel=channel, self_deaf=False, self_mute=True)
 
-        def finished(_sink: Sink, _channel: discord.abc.Connectable, _exception: Exception | None) -> None:
+        def finished(_exception: Exception | None) -> None:
             print("[spike] Recording finished callback")
 
-        vc.start_recording(sink, finished, channel)
+        vc.start_recording(sink, finished)
         print(f"[spike] Recording for {args.seconds}s — speak now!")
         await asyncio.sleep(args.seconds)
         vc.stop_recording()
