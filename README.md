@@ -4,7 +4,7 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.4**.
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.5**.
 
 ## Stack
 
@@ -130,6 +130,8 @@ Ver [specs/002-python-pycord-migration/contracts/spike-acceptance.md](specs/002-
 
 ## Estrutura de gravações
 
+Cada utterance passa por **Opus (Discord) → PCM (py-cord) → WAV (sink) → OGG (ffmpeg)**. O sink customizado implementa `is_opus() → False` para que o py-cord decodifique o áudio antes de chamar `write()`; sem isso, nenhum PCM chega ao disco.
+
 ```
 recordings/
   {session_id}/
@@ -139,6 +141,8 @@ recordings/
       0001.ogg
       0002.ogg
 ```
+
+Após `!cronista entrar`, alguém precisa **falar no canal**; o arquivo só é fechado após ~1s de silêncio (`UTTERANCE_SILENCE_MS`) ou ao `!cronista encerrar`. Nos logs, confirme `[recorder] Primeiro pacote de áudio recebido`.
 
 ## Testes
 
@@ -258,7 +262,7 @@ app/cronista/
 ├── webhook.py          # Notificação n8n com retry
 ├── config.py
 └── recording/
-    ├── sink.py         # Captura incremental por utterance
+    ├── sink.py         # Captura incremental por utterance (Opus→PCM→WAV→OGG)
     ├── storage.py
     └── speaking_log.py
 ```

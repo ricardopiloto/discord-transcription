@@ -46,6 +46,10 @@ class IncrementalUtteranceSink(Sink):
     # py-cord 2.8 voice receive router expects these on every sink subclass.
     __sink_listeners__: ClassVar[list[tuple[str, str]]] = []
 
+    def is_opus(self) -> bool:
+        """Tell py-cord to decode Opus → PCM before calling write()."""
+        return False
+
     def __init__(
         self,
         *,

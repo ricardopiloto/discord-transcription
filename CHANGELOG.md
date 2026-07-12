@@ -14,6 +14,24 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ---
 
+## [0.1.5] - 2026-07-12
+
+> **Status**: decodificação Opus→PCM no sink — aguardando revalidação de arquivos `.ogg` em produção.
+
+### Fixed
+
+- **Áudio não gravava apesar de pacotes recebidos** — `IncrementalUtteranceSink` agora implementa `is_opus() → False`, instruindo o py-cord a decodificar Opus para PCM antes de `write()`; sem isso o sink recebia dados vazios e não criava arquivos (`app/cronista/recording/sink.py`)
+
+### Changed
+
+- `README.md`: pipeline de áudio documentado (Opus→PCM→WAV→OGG) e sinal de log esperado ao capturar
+
+### Added
+
+- Teste unitário garantindo `is_opus() == False` no sink (`app/tests/unit/test_sink.py`)
+
+---
+
 ## [0.1.4] - 2026-07-12
 
 > **Status**: documentação de deploy para Ubuntu 26.04 / Python 3.14 — requer venv com 3.13.

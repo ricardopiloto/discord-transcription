@@ -48,6 +48,7 @@ def sink(tmp_path: Path) -> IncrementalUtteranceSink:
 def test_sink_exposes_pycord_voice_receive_hooks(sink: IncrementalUtteranceSink) -> None:
     assert hasattr(sink, "__sink_listeners__")
     assert list(sink.walk_children()) == []
+    assert sink.is_opus() is False
 
     reader = MagicMock()
     reader.packet_router._lock = __import__("threading").RLock()

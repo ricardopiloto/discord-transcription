@@ -26,6 +26,9 @@ class SpikeSink(Sink):
 
     __sink_listeners__: list[tuple[str, str]] = []
 
+    def is_opus(self) -> bool:
+        return False
+
     def __init__(self, output_dir: Path) -> None:
         super().__init__()
         self.output_dir = output_dir
