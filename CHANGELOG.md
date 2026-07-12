@@ -14,6 +14,22 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ---
 
+## [0.1.7] - 2026-07-12
+
+> **Status**: filtro de silêncio DAVE + reinício automático de gravação — aguardando revalidação em produção.
+
+### Fixed
+
+- **Arquivos `.ogg` gerados mas mudos** — frames iniciais do DAVE (decrypt falho / Opus silence) eram gravados como utterance; agora pacotes PCM silenciosos são ignorados e utterances só com silêncio são descartadas (`app/cronista/recording/sink.py`)
+- **Gravação parava após `OpusError: corrupted stream`** — py-cord chama `stop_recording()` no primeiro frame Opus inválido; callback reinicia a gravação automaticamente enquanto a sessão estiver ativa (`app/cronista/session_manager.py`)
+- **Race DAVE no início da sessão** — aguarda `dave_session.ready` + 2s de settle antes de `start_recording` para reduzir frames corrompidos no handshake MLS
+
+### Changed
+
+- **Dependência py-cord** — `requirements.txt` passa de `refs/pull/3202/head` para a branch `fix/voice-rec-2` (`Pycord-Development/pycord`)
+
+---
+
 ## [0.1.6] - 2026-07-12
 
 > **Status**: gravação sem deadlock no event loop — aguardando revalidação em produção.

@@ -4,7 +4,7 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.6**.
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.7**.
 
 ## Stack
 
@@ -107,16 +107,16 @@ python -m cronista
 
 ## Spike DAVE (obrigatório antes do cutover)
 
-Validar recepção de áudio sob DAVE no ambiente real (usa a mesma build do PR #3202 que produção):
+Validar recepção de áudio sob DAVE no ambiente real (usa a mesma build da branch `fix/voice-rec-2` que produção):
 
 ```bash
 python3.11 -m venv .venv-spike && source .venv-spike/bin/activate
-pip install "py-cord[voice] @ git+https://github.com/Pycord-Development/pycord@refs/pull/3202/head"
+pip install "py-cord[voice] @ git+https://github.com/Pycord-Development/pycord@fix/voice-rec-2"
 export DISCORD_TOKEN=...
 python spike/record_smoke.py --channel <voice_channel_id> --seconds 180
 ```
 
-> **Nota**: a py-cord 2.8.0 do PyPI **não recebe áudio** em canais com DAVE ativo. O `requirements.txt` já aponta para o PR #3202 com a decodificação corrigida.
+> **Nota**: a py-cord 2.8.0 do PyPI **não recebe áudio** em canais com DAVE ativo. O `requirements.txt` aponta para a branch `fix/voice-rec-2` com a decodificação corrigida.
 
 Ver [specs/002-python-pycord-migration/contracts/spike-acceptance.md](specs/002-python-pycord-migration/contracts/spike-acceptance.md).
 

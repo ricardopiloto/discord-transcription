@@ -70,9 +70,7 @@ class SessionManager:
         )
         await write_session_json(self.session_dir, self.session)
 
-        def recording_finished(exception: Exception | None) -> None:
-            if exception:
-                logger.error("[session] Recording error: %s", exception)
+        recording_finished = self._make_recording_finished_callback()
 
         self.sink = IncrementalUtteranceSink(
             session_dir=self.session_dir,
@@ -88,6 +86,7 @@ class SessionManager:
         )
         try:
             self.sink.init(voice_client)
+            await self._wait_dave_warmup(voice_client)
             voice_client.start_recording(self.sink, recording_finished)
         except Exception:
             self._reset()
@@ -119,6 +118,55 @@ class SessionManager:
         finished = self.session
         self._reset()
         return finished
+
+    def _make_recording_finished_callback(self):
+        def recording_finished(exception: Exception | None) -> None:
+            if exception is None:
+                return
+
+            recoverable = "corrupted stream" in str(exception) or type(exception).__name__ == "OpusError"
+            if recoverable:
+                logger.warning("[session] Recording error (recuperável): %s", exception)
+            else:
+                logger.error("[session] Recording error: %s", exception)
+                return
+
+            if self.session is None or self.voice_client is None or self.sink is None:
+                return
+            if not self.voice_client.is_connected() or self.voice_client.is_recording():
+                return
+
+            try:
+                self.voice_client.start_recording(self.sink, recording_finished)
+                logger.info("[session] Gravação reiniciada após erro Opus/DAVE")
+            except Exception as exc:
+                logger.error("[session] Falha ao reiniciar gravação: %s", exc)
+
+        return recording_finished
+
+    async def _wait_dave_warmup(
+        self,
+        voice_client: discord.VoiceClient,
+        *,
+        ready_timeout: float = 15.0,
+        settle_delay: float = 2.0,
+    ) -> None:
+        """Wait for DAVE MLS ready, then allow early decrypt failures to settle."""
+        conn = voice_client._connection
+        deadline = time.monotonic() + ready_timeout
+        while time.monotonic() < deadline:
+            dave = getattr(conn, "dave_session", None)
+            if dave is not None and getattr(dave, "ready", False):
+                break
+            await asyncio.sleep(0.1)
+        else:
+            logger.warning(
+                "[session] DAVE não ficou ready em %.0fs; iniciando gravação mesmo assim",
+                ready_timeout,
+            )
+
+        if settle_delay > 0:
+            await asyncio.sleep(settle_delay)
 
     def _reset(self) -> None:
         self.session = None

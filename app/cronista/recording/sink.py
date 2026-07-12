@@ -26,6 +26,32 @@ logger = logging.getLogger(__name__)
 SAMPLE_RATE = 48_000
 CHANNELS = 2
 SAMPLE_WIDTH = 2
+PCM_SILENCE_THRESHOLD = 512
+
+
+def is_silent_pcm(pcm: bytes, threshold: int = PCM_SILENCE_THRESHOLD) -> bool:
+    """True when every sample is below *threshold* (DAVE warm-up / Opus silence frames)."""
+    if len(pcm) < 2:
+        return True
+    peak = 0
+    for i in range(0, len(pcm) - 1, 2):
+        sample = int.from_bytes(pcm[i : i + 2], "little", signed=True)
+        if sample < 0:
+            sample = -sample
+        if sample > peak:
+            peak = sample
+            if peak >= threshold:
+                return False
+    return True
+
+
+def wav_has_audio(wav_path: Path, threshold: int = PCM_SILENCE_THRESHOLD) -> bool:
+    if wav_path.stat().st_size <= 44:
+        return False
+    with wave.open(wav_path, "rb") as wf:
+        pcm = wf.readframes(wf.getnframes())
+    return not is_silent_pcm(pcm, threshold)
+
 
 OnParticipant = Callable[[str, str], Awaitable[None]]
 OnUtteranceComplete = Callable[[str], Awaitable[None]]
@@ -204,6 +230,9 @@ class IncrementalUtteranceSink(Sink):
         if not pcm:
             return
 
+        if is_silent_pcm(pcm):
+            return
+
         self.packets_received += 1
         self.pcm_bytes_received += len(pcm)
         if self.packets_received == 1:
@@ -246,6 +275,16 @@ class IncrementalUtteranceSink(Sink):
             return
 
         open_ut.wav.close()
+
+        if not wav_has_audio(open_ut.wav_path):
+            open_ut.wav_path.unlink(missing_ok=True)
+            logger.info(
+                "[recorder] Utterance descartada (apenas silêncio) %s/%04d",
+                user_id,
+                open_ut.seq,
+            )
+            return
+
         ogg_path = open_ut.wav_path.with_suffix(".ogg")
         converted = _convert_wav_to_ogg(open_ut.wav_path, ogg_path)
         if converted:

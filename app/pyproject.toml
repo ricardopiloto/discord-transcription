@@ -1,6 +1,6 @@
 [project]
 name = "cronista"
-version = "0.1.6"
+version = "0.1.7"
 description = "Discord voice capture bot for RPG sessions"
 requires-python = ">=3.11,<3.14"
 dependencies = [

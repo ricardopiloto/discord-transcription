@@ -10,7 +10,7 @@ import discord
 import pytest
 from discord.voice.receive.router import SinkEventRouter
 
-from cronista.recording.sink import IncrementalUtteranceSink
+from cronista.recording.sink import IncrementalUtteranceSink, is_silent_pcm
 from cronista.recording.speaking_log import SpeakingLog
 
 
@@ -89,3 +89,18 @@ def test_open_utterance_sync_creates_wav(sink: IncrementalUtteranceSink, tmp_pat
     wav_path = tmp_path / "20260711-120000" / "12345" / "0001.wav"
     assert wav_path.exists()
     assert "12345" in sink.open_utterances
+
+
+def test_is_silent_pcm_detects_dave_warmup_frames() -> None:
+    silence = b"\x00\x00" * 1920
+    assert is_silent_pcm(silence) is True
+
+    speech = silence[:100] + (1000).to_bytes(2, "little", signed=True) + silence[102:]
+    assert is_silent_pcm(speech) is False
+
+
+def test_write_skips_silent_pcm(sink: IncrementalUtteranceSink) -> None:
+    silence = b"\x00\x00" * 1920
+    sink.write(silence, None)
+    assert sink.packets_received == 0
+    assert sink.open_utterances == {}
