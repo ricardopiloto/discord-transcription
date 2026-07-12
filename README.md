@@ -4,7 +4,7 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.5**.
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.6**.
 
 ## Stack
 
@@ -142,7 +142,7 @@ recordings/
       0002.ogg
 ```
 
-Após `!cronista entrar`, alguém precisa **falar no canal**; o arquivo só é fechado após ~1s de silêncio (`UTTERANCE_SILENCE_MS`) ou ao `!cronista encerrar`. Nos logs, confirme `[recorder] Primeiro pacote de áudio recebido`.
+Após `!cronista entrar`, alguém precisa **falar no canal**; o arquivo só é fechado após ~1s de silêncio (`UTTERANCE_SILENCE_MS`) ou ao `!cronista encerrar`. Nos logs, confirme `[recorder] Primeiro pacote de áudio recebido` e `[recorder] Utterance aberta ...`.
 
 ## Testes
 

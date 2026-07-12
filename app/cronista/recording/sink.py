@@ -18,7 +18,7 @@ import discord
 from discord.sinks import Sink
 
 from cronista.recording.speaking_log import SpeakingLog
-from cronista.recording.storage import format_utterance_filename, write_session_json
+from cronista.recording.storage import format_utterance_filename
 from cronista.session import SpeakingLogEntry
 
 logger = logging.getLogger(__name__)
@@ -115,6 +115,12 @@ class IncrementalUtteranceSink(Sink):
                 return member
         return self.guild.get_member(user_id)
 
+    def _display_name_sync(self, user_id: str) -> str:
+        member = self._find_member(int(user_id))
+        if member is not None and not member.bot:
+            return member.display_name or member.name
+        return f"user-{user_id}"
+
     async def _resolve_display_name(self, user_id: str) -> str:
         uid = int(user_id)
         member = self._find_member(uid)
@@ -157,12 +163,9 @@ class IncrementalUtteranceSink(Sink):
         member = self._find_member(user_id)
         return member is not None and member.bot
 
-    async def _start_utterance(self, user_id: str) -> None:
+    def _open_utterance_sync(self, user_id: str) -> None:
         if user_id in self.open_utterances:
             return
-
-        display_name = await self._resolve_display_name(user_id)
-        await self.on_participant(user_id, display_name)
 
         seq = self.seq_counters.get(user_id, 0) + 1
         self.seq_counters[user_id] = seq
@@ -183,6 +186,18 @@ class IncrementalUtteranceSink(Sink):
             wav_path=wav_path,
             wav=wav,
         )
+        logger.info("[recorder] Utterance aberta %s/%04d.wav", user_id, seq)
+
+    def _schedule_participant_register(self, user_id: str) -> None:
+        display_name = self._display_name_sync(user_id)
+
+        async def _register() -> None:
+            await self.on_participant(user_id, display_name)
+            resolved = await self._resolve_display_name(user_id)
+            if resolved != display_name:
+                await self.on_participant(user_id, resolved)
+
+        asyncio.run_coroutine_threadsafe(_register(), self.loop)
 
     def write(self, data, user) -> None:
         pcm = getattr(data, "pcm", data)
@@ -213,12 +228,8 @@ class IncrementalUtteranceSink(Sink):
 
         with self._lock:
             if user_id not in self.open_utterances:
-                future = asyncio.run_coroutine_threadsafe(self._start_utterance(user_id), self.loop)
-                try:
-                    future.result(timeout=10)
-                except Exception:
-                    logger.exception("[recorder] Falha ao iniciar utterance para %s", user_id)
-                    return
+                self._open_utterance_sync(user_id)
+                self._schedule_participant_register(user_id)
 
             open_ut = self.open_utterances.get(user_id)
             if open_ut is not None:
@@ -227,8 +238,10 @@ class IncrementalUtteranceSink(Sink):
             self._schedule_close(user_id)
 
     async def _close_utterance(self, user_id: str) -> None:
-        self._cancel_timer(user_id)
-        open_ut = self.open_utterances.pop(user_id, None)
+        with self._lock:
+            self._cancel_timer(user_id)
+            open_ut = self.open_utterances.pop(user_id, None)
+
         if open_ut is None:
             return
 
@@ -237,9 +250,8 @@ class IncrementalUtteranceSink(Sink):
         converted = _convert_wav_to_ogg(open_ut.wav_path, ogg_path)
         if converted:
             open_ut.wav_path.unlink(missing_ok=True)
-            final_path = ogg_path
         else:
-            final_path = open_ut.wav_path
+            ogg_path = open_ut.wav_path
 
         end_ms = self._elapsed_ms()
         rel_file = f"{user_id}/{format_utterance_filename(open_ut.seq)}"

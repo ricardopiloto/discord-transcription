@@ -14,6 +14,17 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ---
 
+## [0.1.6] - 2026-07-12
+
+> **Status**: gravação sem deadlock no event loop — aguardando revalidação em produção.
+
+### Fixed
+
+- **Gravação travava com `TimeoutError` e heartbeat bloqueado** — `write()` bloqueava o event loop do Discord com `future.result()` enquanto aguardava `_start_utterance()` assíncrono; abertura de arquivo WAV agora é síncrona e registro de participante é agendado sem bloquear (`app/cronista/recording/sink.py`)
+- **Nome de participante não atualizava após resolução via API** — `register_participant` agora substitui placeholder `user-{id}` quando o nome real é obtido (`app/cronista/session_manager.py`)
+
+---
+
 ## [0.1.5] - 2026-07-12
 
 > **Status**: decodificação Opus→PCM no sink — aguardando revalidação de arquivos `.ogg` em produção.

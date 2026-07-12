@@ -134,6 +134,13 @@ class SessionManager:
             return
 
         if any(p.user_id == user_id for p in self.session.participants):
+            participant = next(p for p in self.session.participants if p.user_id == user_id)
+            if participant.display_name != display_name and not display_name.startswith("user-"):
+                participant.display_name = display_name
+                try:
+                    await write_session_json(self.session_dir, self.session)
+                except OSError as exc:
+                    logger.error("[session] Falha ao atualizar nome de %s: %s", user_id, exc)
             return
 
         self.session.participants.append(

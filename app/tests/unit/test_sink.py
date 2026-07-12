@@ -34,7 +34,7 @@ def _make_sink(tmp_path: Path, *, members: list[discord.Member] | None = None) -
         bot_user_id="999",
         guild=guild,
         voice_channel=voice_channel,
-        loop=asyncio.get_event_loop(),
+        loop=asyncio.new_event_loop(),
         on_participant=AsyncMock(),
         on_utterance_complete=AsyncMock(),
     )
@@ -82,3 +82,10 @@ async def test_resolve_display_name_uses_voice_channel_member(tmp_path: Path) ->
 async def test_resolve_display_name_falls_back_to_user_id(tmp_path: Path) -> None:
     sink = _make_sink(tmp_path)
     assert await sink._resolve_display_name("222") == "user-222"
+
+
+def test_open_utterance_sync_creates_wav(sink: IncrementalUtteranceSink, tmp_path: Path) -> None:
+    sink._open_utterance_sync("12345")
+    wav_path = tmp_path / "20260711-120000" / "12345" / "0001.wav"
+    assert wav_path.exists()
+    assert "12345" in sink.open_utterances
