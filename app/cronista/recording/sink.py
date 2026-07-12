@@ -48,7 +48,7 @@ def is_silent_pcm(pcm: bytes, threshold: int = PCM_SILENCE_THRESHOLD) -> bool:
 def wav_has_audio(wav_path: Path, threshold: int = PCM_SILENCE_THRESHOLD) -> bool:
     if wav_path.stat().st_size <= 44:
         return False
-    with wave.open(wav_path, "rb") as wf:
+    with wave.open(str(wav_path), "rb") as wf:
         pcm = wf.readframes(wf.getnframes())
     return not is_silent_pcm(pcm, threshold)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import wave
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -10,7 +11,7 @@ import discord
 import pytest
 from discord.voice.receive.router import SinkEventRouter
 
-from cronista.recording.sink import IncrementalUtteranceSink, is_silent_pcm
+from cronista.recording.sink import IncrementalUtteranceSink, is_silent_pcm, wav_has_audio
 from cronista.recording.speaking_log import SpeakingLog
 
 
@@ -104,3 +105,14 @@ def test_write_skips_silent_pcm(sink: IncrementalUtteranceSink) -> None:
     sink.write(silence, None)
     assert sink.packets_received == 0
     assert sink.open_utterances == {}
+
+
+def test_wav_has_audio_accepts_path_object(tmp_path: Path) -> None:
+    wav_path = tmp_path / "sample.wav"
+    with wave.open(str(wav_path), "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(48_000)
+        wf.writeframes((1000).to_bytes(2, "little", signed=True) * 100)
+
+    assert wav_has_audio(wav_path) is True

@@ -27,6 +27,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Changed
 
 - **Dependência py-cord** — `requirements.txt` passa de `refs/pull/3202/head` para a branch `fix/voice-rec-2` (`Pycord-Development/pycord`)
+- **`!cronista encerrar` falhava com `AttributeError`** — `wave.open(..., "rb")` não aceita `Path` diretamente; `wav_has_audio` agora passa `str(wav_path)` (`app/cronista/recording/sink.py`)
 
 ---
 
