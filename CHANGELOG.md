@@ -14,6 +14,18 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ---
 
+## [0.1.4] - 2026-07-12
+
+> **Status**: documentação de deploy para Ubuntu 26.04 / Python 3.14 — requer venv com 3.13.
+
+### Changed
+
+- Runtime documentado e fixado em `>=3.11,<3.14` (`app/pyproject.toml`) — py-cord não suporta Python 3.14
+- `README.md`: requisitos de Python 3.11–3.13 explícitos; guia **Ubuntu 26.04** com Python 3.13 via deadsnakes; seção para recriar venv quando `pip` falha com `not in '<3.14,>=3.10'`
+- `app/requirements.txt`: comentário sobre incompatibilidade com Python 3.14
+
+---
+
 ## [0.1.3] - 2026-07-11
 
 > **Status**: participantes + recepção DAVE corrigidos — aguardando revalidação com áudio ao vivo.

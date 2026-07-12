@@ -4,15 +4,15 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.3**.
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.4**.
 
 ## Stack
 
-Python 3.11+ / py-cord — código em `app/cronista/`
+Python 3.11–3.13 / py-cord — código em `app/cronista/` (py-cord **não suporta Python 3.14**)
 
 ## Requisitos
 
-- Python 3.11+
+- Python **3.11, 3.12 ou 3.13** (`>=3.11,<3.14`) — **não use 3.14** com py-cord
 - Bot Discord configurado no Developer Portal (ver seção abaixo)
 - `ffmpeg` no PATH (conversão PCM→Opus por utterance; fallback grava `.wav` se ausente)
 - venv Python **isolado** — não compartilhar com Bertroldo (conflito de namespace `discord`)
@@ -195,6 +195,41 @@ cd /opt/apps/cronista
 sudo systemctl stop cronista
 git pull
 .venv/bin/pip install -r app/requirements.txt   # se as dependências mudaram
+sudo systemctl start cronista
+```
+
+### Ubuntu 26.04 (Python 3.14 no sistema)
+
+O `python3` do Ubuntu 26.04 é **3.14** — py-cord exige **3.11–3.13**. Instale o 3.13 em paralelo (via [deadsnakes](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa)) e use-o só no venv do Cronista. **Não altere** `/usr/bin/python3` (quebra o `apt`).
+
+```bash
+sudo apt update
+sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install -y python3.13 python3.13-venv python3.13-dev \
+  libffi-dev libopus-dev ffmpeg git
+
+cd /opt/apps/cronista
+sudo systemctl stop cronista
+rm -rf .venv
+python3.13 -m venv .venv
+.venv/bin/pip install -r app/requirements.txt
+.venv/bin/python --version   # deve mostrar 3.13.x
+sudo systemctl start cronista
+sudo journalctl -u cronista -f
+```
+
+### Recriar o venv (Python incompatível)
+
+Se `pip install` falhar com `Python 3.14.x not in '<3.14,>=3.10'`, o venv foi criado com Python 3.14. Recrie com 3.11–3.13:
+
+```bash
+cd /opt/apps/cronista
+sudo systemctl stop cronista
+rm -rf .venv
+python3.11 -m venv .venv    # ou python3.12 / python3.13 — verifique com: python3.11 --version
+.venv/bin/pip install -r app/requirements.txt
 sudo systemctl start cronista
 ```
 

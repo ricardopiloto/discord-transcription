@@ -1,4 +1,5 @@
 # py-cord 2.8.0 (PyPI) não decodifica áudio sob DAVE — PR #3202 obrigatório até merge oficial
+# Requer Python >=3.10,<3.14 — recrie o venv se estiver em 3.14
 py-cord[voice] @ git+https://github.com/Pycord-Development/pycord@refs/pull/3202/head
 aiohttp>=3.9.0
 python-dotenv>=1.0.0
