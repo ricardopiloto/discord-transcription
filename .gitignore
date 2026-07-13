@@ -17,6 +17,10 @@ __pycache__/
 .venv/
 .venv-spike/
 app/.venv/
-.pytest_cache/
+whisper-service/.venv/
+whisper-service/.pytest_cache/
+whisper-service/__pycache__/
+whisper-service/whisper_service/__pycache__/
+whisper-service/tests/__pycache__/
 *.egg-info/
 .ruff_cache/

@@ -1,0 +1,18 @@
+[Unit]
+Description=Whisper Service — transcrição faster-whisper para pipeline Cronista/n8n
+After=network.target
+
+[Service]
+Type=simple
+User=adminvtt
+WorkingDirectory=/opt/apps/whisper-service/whisper-service
+EnvironmentFile=/opt/apps/whisper-service/.env
+ExecStart=/opt/apps/whisper-service/.venv/bin/python -m whisper_service
+Restart=on-failure
+RestartSec=30
+
+# Modelo Whisper residente em RAM — evitar OOM kill silencioso
+MemoryMax=4G
+
+[Install]
+WantedBy=multi-user.target

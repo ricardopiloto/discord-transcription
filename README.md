@@ -4,11 +4,15 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.1.7**.
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.2.0**.
 
 ## Stack
 
 Python 3.11–3.13 / py-cord — código em `app/cronista/` (py-cord **não suporta Python 3.14**)
+
+## whisper-service
+
+Microserviço HTTP de transcrição (**faster-whisper**) consumido pelo workflow n8n. Código em [`whisper-service/`](whisper-service/); quickstart em [`whisper-service/quickstart.md`](whisper-service/quickstart.md).
 
 ## Requisitos
 

@@ -11,6 +11,28 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Executar spike DAVE no ambiente real e registrar verdict em `specs/002-python-pycord-migration/contracts/spike-acceptance.md`
 - Validar quickstart manual completo (Discord ao vivo)
 - Confirmar captura de áudio e estabilidade em sessão prolongada
+- Validar whisper-service em produção (integração n8n Docker, T028–T029)
+
+---
+
+## [0.2.0] - 2026-07-12
+
+> **Status**: whisper-service MVP implementado — aguardando deploy e validação com áudio real + n8n.
+
+### Added
+
+- **whisper-service** — microserviço HTTP (FastAPI + faster-whisper) que transcreve utterances `.ogg` do Cronista sob demanda, consumido pelo workflow n8n (`whisper-service/whisper_service/`)
+- **`POST /transcribe`** — recebe `{audio_path, language}`, devolve `{text, language, duration_s}`; modelo carregado uma vez na inicialização
+- **`GET /health`** — status do serviço e modelo/compute type em uso (200 ok / 503 loading)
+- **Proteção de path** — `WHISPER_ALLOWED_PATH_PREFIX` rejeita caminhos fora do diretório de gravações (`whisper-service/whisper_service/paths.py`)
+- **Deploy systemd** — `deploy/whisper-service.service` (venv isolado, usuário `adminvtt`, `python -m whisper_service`)
+- **Specs e design** — `whisper-service/spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`, `tasks.md`
+- **15 testes unitários** — config, paths, health e transcribe com transcriber mockado (`whisper-service/tests/`)
+
+### Changed
+
+- **README** — seção whisper-service com link para quickstart
+- **`.gitignore`** — artefatos Python do `whisper-service/` (`.venv`, `__pycache__`, `.pytest_cache`)
 
 ---
 

@@ -1,0 +1,11 @@
+# whisper-service — faster-whisper HTTP microservice
+# Requer Python >=3.11,<3.14
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+faster-whisper>=1.1.0
+python-dotenv>=1.0.0
+
+# Dev
+pytest>=8.0.0
+httpx>=0.27.0
+ruff>=0.4.0

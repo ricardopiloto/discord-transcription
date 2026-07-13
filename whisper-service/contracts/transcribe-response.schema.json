@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cronista.local/schemas/whisper/transcribe-response.schema.json",
+  "title": "TranscribeResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text", "language", "duration_s"],
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "Transcribed text (may be empty for silent audio)"
+    },
+    "language": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 5,
+      "description": "Language used or detected"
+    },
+    "duration_s": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Audio duration in seconds"
+    }
+  }
+}

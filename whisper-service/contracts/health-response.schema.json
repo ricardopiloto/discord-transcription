@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cronista.local/schemas/whisper/health-response.schema.json",
+  "title": "HealthResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "model", "compute_type"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["ok", "loading"],
+      "description": "Service readiness status"
+    },
+    "model": {
+      "type": "string",
+      "description": "Effective WHISPER_MODEL_SIZE value"
+    },
+    "compute_type": {
+      "type": "string",
+      "description": "Effective WHISPER_COMPUTE_TYPE value"
+    }
+  }
+}

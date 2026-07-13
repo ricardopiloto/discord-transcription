@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cronista.local/schemas/whisper/transcribe-request.schema.json",
+  "title": "TranscribeRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["audio_path", "language"],
+  "properties": {
+    "audio_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to audio file on the host filesystem"
+    },
+    "language": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 5,
+      "description": "ISO 639-1 language code (e.g. pt, en)"
+    }
+  }
+}
