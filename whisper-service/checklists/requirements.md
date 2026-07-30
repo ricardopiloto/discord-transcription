@@ -1,10 +1,10 @@
-# Specification Quality Checklist: whisper-service
+# Specification Quality Checklist: whisper-service (atualização)
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-
-**Created**: 2026-07-12
-
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate updated specification completeness before `/speckit-tasks`  
+**Created**: 2026-07-12  
+**Updated**: 2026-07-30  
+**Feature**: [spec.md](../spec.md)  
+**Source**: `docs/demanda-whisper-service.md`
 
 ## Content Quality
 
@@ -13,7 +13,7 @@
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
 
-## Requirement Complements
+## Requirement Completeness
 
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
@@ -33,18 +33,13 @@
 
 ## Validation Summary
 
-**Status**: PASSED (all items green)
+**Status**: PASSED
 
 **Iterations**: 1 of 3
 
-**Notes on API endpoints in spec**:
+**Notes**:
 
-- Endpoints `/transcribe` and `/health` are integration contracts for the n8n consumer, analogous to bot commands in Cronista specs — treated as user-facing behavior, not incidental implementation leakage.
-- References to Docker, systemd, venv and firewall appear as operational constraints from the PRD, documented in Assumptions and Dependencies.
-
-## Notes
-
-- Spec derived from `docs/PRD-whisper-service.md`.
-- Feature lives in `whisper-service/` at repository root, separate from Cronista (`app/`) and from `specs/001-*` / `specs/002-*` migration artifacts.
-- Open questions from PRD resolved with documented defaults (model size, firewall, timeout).
-- Ready for `/speckit-plan` or `/speckit-clarify`.
+- Spec atualiza o MVP: gap principal é `WHISPER_CPU_THREADS` (default 5) + aceite de convivência em sessão ~2.000 utterances.
+- Endpoints `/transcribe` e `/health` tratados como contratos de integração (não vazamento de implementação).
+- Menção a `htop` fica no quickstart como método de validação operacional, não como requisito de produto.
+- Pronto para `/speckit-tasks` (tarefas da atualização) e depois `/speckit-implement`.

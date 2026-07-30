@@ -1,6 +1,6 @@
 [project]
 name = "whisper-service"
-version = "0.1.0"
+version = "0.2.1"
 description = "HTTP microservice exposing faster-whisper for Cronista/n8n transcription pipeline"
 requires-python = ">=3.11,<3.14"
 dependencies = [

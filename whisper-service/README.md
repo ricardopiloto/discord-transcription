@@ -35,9 +35,12 @@ python -m whisper_service
 |----------|---------|-----------|
 | `WHISPER_MODEL_SIZE` | `small` | Tamanho do modelo Whisper |
 | `WHISPER_COMPUTE_TYPE` | `int8` | Quantização CPU |
+| `WHISPER_CPU_THREADS` | `5` | Threads OpenMP/CTranslate2 por chamada — limita saturação do host compartilhado |
 | `WHISPER_HOST` | `0.0.0.0` | Bind address (obrigatório para n8n Docker) |
 | `WHISPER_PORT` | `8008` | Porta HTTP |
 | `WHISPER_ALLOWED_PATH_PREFIX` | `/opt/apps/cronista/recordings/` | Prefixo permitido para `audio_path` |
+
+**Anti-padrão**: `WHISPER_CPU_THREADS` maior que o número de núcleos do host pode piorar latência e convivência com Foundry/Bertroldo/n8n. Prefira o default `5` ou um valor menor.
 
 ### Trade-off de modelos (CPU-only)
 

@@ -36,17 +36,24 @@ def load() -> None:
         from faster_whisper import WhisperModel
 
         logger.info(
-            "Carregando modelo Whisper %s (compute=%s)...",
+            "Carregando modelo Whisper %s (compute=%s, cpu_threads=%s)...",
             _config.model_size,
             _config.compute_type,
+            _config.cpu_threads,
         )
         _model = WhisperModel(
             _config.model_size,
             device="cpu",
             compute_type=_config.compute_type,
+            cpu_threads=_config.cpu_threads,
         )
         _ready = True
-        logger.info("Modelo Whisper pronto")
+        logger.info(
+            "Modelo Whisper pronto (model=%s, compute=%s, cpu_threads=%s)",
+            _config.model_size,
+            _config.compute_type,
+            _config.cpu_threads,
+        )
 
 
 def is_ready_state() -> bool:

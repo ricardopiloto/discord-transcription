@@ -10,6 +10,7 @@ from whisper_service.config import ALLOWED_COMPUTE_TYPES, ALLOWED_MODEL_SIZES, l
 def test_load_config_defaults(monkeypatch):
     monkeypatch.delenv("WHISPER_MODEL_SIZE", raising=False)
     monkeypatch.delenv("WHISPER_COMPUTE_TYPE", raising=False)
+    monkeypatch.delenv("WHISPER_CPU_THREADS", raising=False)
     monkeypatch.delenv("WHISPER_HOST", raising=False)
     monkeypatch.delenv("WHISPER_PORT", raising=False)
     monkeypatch.delenv("WHISPER_ALLOWED_PATH_PREFIX", raising=False)
@@ -17,9 +18,34 @@ def test_load_config_defaults(monkeypatch):
     cfg = load_config()
     assert cfg.model_size == "small"
     assert cfg.compute_type == "int8"
+    assert cfg.cpu_threads == 5
     assert cfg.host == "0.0.0.0"
     assert cfg.port == 8008
     assert cfg.allowed_path_prefix == "/opt/apps/cronista/recordings/"
+
+
+def test_cpu_threads_custom_value(monkeypatch):
+    monkeypatch.setenv("WHISPER_CPU_THREADS", "3")
+    cfg = load_config()
+    assert cfg.cpu_threads == 3
+
+
+def test_cpu_threads_rejects_zero(monkeypatch):
+    monkeypatch.setenv("WHISPER_CPU_THREADS", "0")
+    with pytest.raises(ValueError, match="WHISPER_CPU_THREADS"):
+        load_config()
+
+
+def test_cpu_threads_rejects_negative(monkeypatch):
+    monkeypatch.setenv("WHISPER_CPU_THREADS", "-1")
+    with pytest.raises(ValueError, match="WHISPER_CPU_THREADS"):
+        load_config()
+
+
+def test_cpu_threads_rejects_non_integer(monkeypatch):
+    monkeypatch.setenv("WHISPER_CPU_THREADS", "abc")
+    with pytest.raises(ValueError, match="WHISPER_CPU_THREADS"):
+        load_config()
 
 
 def test_invalid_model_size_raises(monkeypatch):

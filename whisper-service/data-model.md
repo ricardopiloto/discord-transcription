@@ -1,7 +1,8 @@
 # Data Model: whisper-service
 
 **Feature**: whisper-service  
-**Date**: 2026-07-12
+**Date**: 2026-07-12  
+**Updated**: 2026-07-30 — `cpu_threads` / `WHISPER_CPU_THREADS`
 
 ## Overview
 
@@ -122,6 +123,7 @@ Configuração carregada de variáveis de ambiente na inicialização.
 |-------|---------|---------|-------------|
 | `model_size` | `WHISPER_MODEL_SIZE` | `small` | Tamanho do modelo Whisper |
 | `compute_type` | `WHISPER_COMPUTE_TYPE` | `int8` | Quantização CTranslate2 |
+| `cpu_threads` | `WHISPER_CPU_THREADS` | `5` | Threads OpenMP/CTranslate2 por chamada — limita saturação do host compartilhado |
 | `host` | `WHISPER_HOST` | `0.0.0.0` | Bind address |
 | `port` | `WHISPER_PORT` | `8008` | Porta HTTP |
 | `allowed_path_prefix` | `WHISPER_ALLOWED_PATH_PREFIX` | `/opt/apps/cronista/recordings/` | Prefixo permitido para `audio_path` |
@@ -130,8 +132,9 @@ Configuração carregada de variáveis de ambiente na inicialização.
 
 - `model_size` ∈ {`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v2`, `large`}
 - `compute_type` ∈ {`int8`, `int8_float16`, `int16`, `float16`, `float32`} — MVP usa `int8`
+- `cpu_threads` MUST ser inteiro ≥ 1 (default 5)
 - `port` ∈ [1024, 65535]
-- Falha na inicialização (modelo inválido) MUST encerrar processo com log explícito (systemd restart)
+- Falha na inicialização (modelo inválido ou `cpu_threads` inválido) MUST encerrar processo com log explícito (systemd restart)
 
 ---
 

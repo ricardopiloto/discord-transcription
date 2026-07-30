@@ -1,169 +1,163 @@
-# Feature Specification: whisper-service (microserviço de transcrição)
+# Feature Specification: whisper-service — atualização (CPU threads + convivência)
 
 **Feature Directory**: `whisper-service/`
 
-**Created**: 2026-07-12
+**Created**: 2026-07-12  
+**Updated**: 2026-07-30
 
-**Status**: Draft
+**Status**: Draft (atualização sobre MVP 0.2.0)
 
-**Input**: PRD `docs/PRD-whisper-service.md` — microserviço HTTP local que expõe transcrição de utterances para o workflow n8n do Cronista.
+**Input**: `docs/demanda-whisper-service.md` — formalização operacional do whisper-service, com ênfase em limite de threads CPU no servidor compartilhado.
 
 ## Context
 
-O pipeline "Cronista - Transcrição da Sessão" (n8n) precisa transcrever dezenas de arquivos de áudio curtos por sessão de RPG (3–4 horas). Invocar o motor de transcrição como processo isolado a cada arquivo recarregaria o modelo repetidamente, tornando o pipeline lento e inviável em CPU-only.
+O whisper-service MVP já existe (`POST /transcribe`, `GET /health`, modelo único em memória, bind `0.0.0.0:8008`, worker único). A demanda formaliza o contrato e adiciona um requisito operacional crítico: **limitar threads do CTranslate2** para que uma sessão de ~2.000 utterances não sature todos os núcleos e degrade Foundry, Bertroldo, n8n e demais serviços no mesmo host.
 
-Este serviço complementa o Cronista (captura de voz): o Cronista grava utterances em disco e notifica o n8n; o whisper-service recebe caminhos de arquivo já existentes no host e devolve texto transcrito. Vive no mesmo repositório, em pasta separada, com deploy e venv próprios — mesmo padrão operacional do Cronista e do Bertroldo.
+### Gap vs implementação atual
+
+| Item da demanda | Status atual |
+|-----------------|--------------|
+| Contrato `/transcribe` e `/health` | Já implementado |
+| Modelo único + workers 1 | Já implementado |
+| Bind `0.0.0.0` | Já implementado |
+| Config modelo/compute/host/porta | Já implementado |
+| **`WHISPER_CPU_THREADS` (default 5)** | **Ausente** — WhisperModel sem `cpu_threads` |
+| Aceite: sessão longa sem saturamento perceptível | **Não validado / não especificado** |
+
+Esta atualização NÃO altera o contrato HTTP externo (request/response de `/transcribe` e campos mínimos de `/health`).
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Transcrever utterances sob demanda (Priority: P1)
+### User Story 1 - Transcrever utterances sob demanda (Priority: P1) — mantido
 
-Como workflow n8n de transcrição, quero enviar o caminho de um arquivo de áudio já gravado e receber o texto transcrito, para montar o transcript final da sessão sem recarregar o modelo a cada arquivo.
+Como workflow n8n, quero enviar caminho de áudio e receber texto, sem recarregar o modelo a cada arquivo.
 
-**Why this priority**: É o valor central do serviço — sem transcrição confiável por arquivo, o pipeline downstream não funciona.
+**Independent Test**: `POST /transcribe` com `.ogg` real → 200 com `text`, `language`, `duration_s`; caminho inexistente → 404.
 
-**Independent Test**: Enviar requisição com caminho válido de um `.ogg` real da campanha e verificar resposta com texto não vazio, idioma informado e duração coerente com o áudio.
-
-**Acceptance Scenarios**:
-
-1. **Given** o serviço está em execução com modelo carregado, **When** o workflow envia `{audio_path, language: "pt"}` para um arquivo `.ogg` existente, **Then** a resposta contém `text`, `language` e `duration_s` preenchidos.
-2. **Given** o caminho informado não existe, **When** o workflow solicita transcrição, **Then** recebe erro claro indicando arquivo não encontrado (sem crash do processo).
-3. **Given** o arquivo existe mas está corrompido ou em formato inválido, **When** o workflow solicita transcrição, **Then** recebe erro descritivo e o serviço permanece disponível para a próxima utterance.
+*(Comportamento já entregue no MVP; regressão obrigatória nesta atualização.)*
 
 ---
 
-### User Story 2 - Verificar disponibilidade do serviço (Priority: P1)
+### User Story 2 - Verificar disponibilidade (Priority: P1) — mantido
 
-Como operador do servidor (via cron de monitoramento ou n8n), quero consultar o status do serviço e qual modelo está carregado, para detectar falhas de inicialização antes que uma sessão inteira fique sem transcrição.
+Como operador, quero `/health` confirmando modelo carregado.
 
-**Why this priority**: O modelo demora a carregar na subida; sem health check, falhas silenciosas só aparecem no meio do pipeline.
+**Independent Test**: Após startup, `/health` → `{status: "ok", model, compute_type}`.
 
-**Independent Test**: Após iniciar o processo, chamar endpoint de saúde e confirmar resposta consistente com modelo e configuração esperados.
-
-**Acceptance Scenarios**:
-
-1. **Given** o serviço terminou de inicializar, **When** o operador consulta saúde, **Then** recebe status positivo e identificação do modelo em uso.
-2. **Given** o serviço ainda está carregando o modelo, **When** saúde é consultada, **Then** o comportamento é previsível (indisponível ou status que indique não pronto — documentado no quickstart).
-3. **Given** o serviço está saudável, **When** o cron de monitoramento consulta periodicamente, **Then** consegue distinguir serviço ok de serviço parado ou com modelo ausente.
+*(Já entregue; regressão obrigatória.)*
 
 ---
 
-### User Story 3 - Integrar com n8n em Docker (Priority: P1)
+### User Story 3 - Integrar com n8n em Docker (Priority: P1) — mantido
 
-Como workflow n8n rodando em container, quero alcançar o serviço no host via rede interna, para transcrever arquivos que o Cronista gravou no filesystem do servidor.
+Como n8n em container, quero alcançar o serviço via `host.docker.internal:8008`.
 
-**Why this priority**: n8n e whisper-service não compartilham o mesmo runtime; falha de conectividade bloqueia 100% das transcrições em produção.
+**Independent Test**: curl de dentro do container → health + transcribe.
 
-**Independent Test**: Com n8n em Docker e serviço no host, executar uma chamada de transcrição usando o hostname de bridge documentado (`host.docker.internal`) e confirmar sucesso.
-
-**Acceptance Scenarios**:
-
-1. **Given** n8n configurado com `extra_hosts: host.docker.internal:host-gateway`, **When** o node HTTP chama o serviço na porta configurada, **Then** a conexão é estabelecida sem erro de rede.
-2. **Given** o serviço escuta em todas as interfaces do host (não apenas loopback), **When** tráfego vem da bridge Docker, **Then** a requisição é aceita.
-3. **Given** o workflow processa `speaking_log.jsonl` sequencialmente, **When** transcreve N utterances de uma sessão, **Then** todas completam sem necessidade de reiniciar o serviço entre arquivos.
+*(Já documentado; validação em produção permanece gate operacional.)*
 
 ---
 
-### User Story 4 - Ajustar qualidade vs velocidade sem redeploy de código (Priority: P2)
+### User Story 4 - Ajustar qualidade vs velocidade via env (Priority: P2) — estendido
 
-Como operador, quero alterar tamanho do modelo e perfil de computação via variáveis de ambiente, para calibrar qualidade da transcrição (nomes de PJs, jargão de campanha) versus tempo de processamento em CPU-only.
+Como operador, quero configurar modelo, compute type **e limite de threads CPU** via env, sem alterar código.
 
-**Why this priority**: O modelo `small` é ponto de partida; só testes reais definem se `medium` compensa — isso não deve exigir mudança de código.
+**Why this priority**: Em servidor compartilhado, threads ilimitadas são risco operacional maior do que escolha de modelo.
 
-**Independent Test**: Alterar variável de modelo, reiniciar serviço, confirmar via health check que o novo modelo está ativo e comparar qualidade em amostra de áudio real.
+**Independent Test**: Definir `WHISPER_CPU_THREADS=5`, reiniciar, confirmar nos logs/config efetiva; alterar para outro valor válido e observar impacto em `htop` durante transcrição.
 
 **Acceptance Scenarios**:
 
-1. **Given** variáveis de ambiente definidas no `.env` ou unit systemd, **When** o serviço reinicia, **Then** carrega o modelo e compute type configurados.
-2. **Given** operador troca de `small` para `medium`, **When** health é consultado, **Then** reflete o novo tamanho de modelo.
-3. **Given** configuração inválida (modelo inexistente), **When** o serviço tenta iniciar, **Then** falha de forma explícita nos logs (não fica em estado silenciosamente quebrado).
+1. **Given** `WHISPER_CPU_THREADS` ausente, **When** o serviço inicia, **Then** usa default **5**.
+2. **Given** `WHISPER_CPU_THREADS=3`, **When** o serviço reinicia e processa uma utterance, **Then** a carga CPU observada não usa todos os núcleos do host de forma sustentada.
+3. **Given** valor inválido (não inteiro ou ≤ 0), **When** o serviço tenta iniciar, **Then** falha com mensagem explícita.
+
+---
+
+### User Story 5 - Convivência CPU em sessão completa (Priority: P1) 🎯 foco da atualização
+
+Como operador do servidor compartilhado, quero que uma sessão completa de transcrição (~2.000 utterances) não deixe Foundry/Bertroldo/blog/n8n perceptivelmente lentos.
+
+**Why this priority**: Motivação central da demanda — o host (Kron Mini / stack VTT) não é dedicado ao Whisper.
+
+**Independent Test**: Rodar lote real ou simulado de utterances com `htop` aberto; demais serviços devem permanecer responsivos; CPU do whisper limitada ao orçamento de threads.
+
+**Acceptance Scenarios**:
+
+1. **Given** serviço com `WHISPER_CPU_THREADS=5` e worker único, **When** n8n processa sequência longa de `/transcribe`, **Then** núcleos remanescentes permanecem disponíveis para outros processos.
+2. **Given** sessão piloto com volume da ordem de milhares de utterances, **When** operador observa o servidor, **Then** não há saturação total de CPU de forma contínua.
+3. **Given** outros serviços (Foundry, Bertroldo) ativos, **When** a transcrição roda em paralelo, **Then** não há indisponibilidade perceptível atribuída ao whisper-service (validação manual do operador).
 
 ---
 
 ### Edge Cases
 
-- Arquivo de áudio referenciado no `speaking_log.jsonl` foi removido ou movido antes da transcrição → erro 404 claro, workflow continua ou registra falha por utterance.
-- Utterance com silêncio ou áudio muito curto → texto vazio ou mínimo, sem travar o serviço.
-- Utterance longa (ex.: pausa de fala curta gerou segmento grande) → transcrição completa dentro do timeout configurado no n8n (120s default) ou erro timeout documentado.
-- Serviço reiniciado no meio de uma sessão → modelo recarrega uma vez; utterances pendentes podem ser reprocessadas pelo workflow.
-- Múltiplas requisições simultâneas (futuro) → fora do escopo MVP; comportamento deve ser previsível (serialização ou fila explícita em fase futura).
-- Porta exposta em `0.0.0.0` sem firewall → risco de acesso indevido na LAN; mitigação operacional obrigatória (ver Assumptions).
+- `WHISPER_CPU_THREADS` maior que núcleos do host → aceito, mas documentado como anti-padrão (pode piorar latência e convivência).
+- Valor `1` → serviço funciona, porém mais lento; ainda válido.
+- Ausência da variável após deploy antigo → default 5 ao reiniciar (sem exigir mudança de `.env` se defaults bastarem).
+- Demais edge cases do MVP (404, arquivo corrompido, loading 503) permanecem válidos.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: O serviço MUST expor endpoint `POST /transcribe` que aceita `audio_path` (caminho absoluto no host) e `language` (código ISO, ex.: `pt`).
-- **FR-002**: Resposta bem-sucedida de transcrição MUST incluir `text` (string transcrita), `language` (eco do solicitado ou detectado) e `duration_s` (duração do áudio processado).
-- **FR-003**: O serviço MUST retornar erro claro quando `audio_path` não existe no filesystem.
-- **FR-004**: O serviço MUST retornar erro descritivo quando a transcrição falha (arquivo corrompido, formato não suportado, etc.) sem derrubar o processo.
-- **FR-005**: O serviço MUST expor endpoint `GET /health` reportando disponibilidade e modelo carregado (e tipo de computação em uso).
-- **FR-006**: O modelo de transcrição MUST ser carregado uma única vez na inicialização do processo e reutilizado em todas as chamadas subsequentes.
-- **FR-007**: Tamanho do modelo, tipo de computação, host de escuta e porta MUST ser configuráveis via variáveis de ambiente sem alteração de código.
-- **FR-008**: Valores default MUST ser: modelo `small`, compute `int8`, host `0.0.0.0`, porta `8008`.
-- **FR-009**: O serviço MUST aceitar arquivos de áudio já presentes em disco — MUST NOT exigir upload binário via HTTP no MVP.
-- **FR-010**: O serviço MUST operar em CPU-only nesta fase (sem dependência de GPU).
-- **FR-011**: O serviço MUST ser invocável pelo workflow n8n a partir de container Docker via `host.docker.internal` (com `extra_hosts` configurado no compose do n8n).
-- **FR-012**: O serviço MUST rodar com worker único nesta fase, evitando duplicação do modelo em memória.
-- **FR-013**: O serviço MUST viver em pasta e venv próprios no repositório, independentes do código do Cronista.
-- **FR-014**: Deploy MUST seguir padrão systemd existente (usuário `adminvtt`, venv isolado), alinhado aos demais serviços do host.
+**Mantidos (regressão):**
+
+- **FR-001**–**FR-006**, **FR-009**–**FR-014**: inalterados em intenção (API path-based, health, modelo único, CPU-only, Docker host, workers 1, venv/systemd isolados).
+
+**Atualizados / novos:**
+
+- **FR-007**: Tamanho do modelo, tipo de computação, host, porta **e número de threads CPU** MUST ser configuráveis via variáveis de ambiente sem alteração de código.
+- **FR-008**: Defaults MUST ser: modelo `small`, compute `int8`, host `0.0.0.0`, porta `8008`, **`cpu_threads` = 5**.
+- **FR-015**: O serviço MUST passar `cpu_threads` ao carregar o modelo faster-whisper / CTranslate2, usando o valor de `WHISPER_CPU_THREADS`.
+- **FR-016**: `WHISPER_CPU_THREADS` MUST ser inteiro ≥ 1; valores inválidos MUST falhar na inicialização com erro explícito.
+- **FR-017**: O contrato HTTP de `/transcribe` (request/response 200/404/500) MUST permanecer compatível com a demanda e com o workflow n8n existente.
 
 ### Key Entities
 
-- **Requisição de transcrição**: Par `{audio_path, language}` enviada pelo n8n para um utterance.
-- **Resposta de transcrição**: Par `{text, language, duration_s}` consumida pelo workflow para montagem do transcript.
-- **Status de saúde**: Indicador operacional `{status, model, compute_type}` para monitoramento.
-- **Utterance**: Arquivo de áudio curto (tipicamente `.ogg`) gerado pelo Cronista, referenciado em `speaking_log.jsonl`.
-- **Configuração de runtime**: Variáveis de ambiente que controlam modelo, compute, bind de rede e porta.
+- **Requisição / Resposta de transcrição**: inalteradas (`audio_path`, `language` → `text`, `language`, `duration_s`).
+- **Status de saúde**: `{status, model, compute_type}` (mínimo da demanda; campos extras opcionais não exigidos).
+- **Configuração de runtime**: inclui `cpu_threads` (`WHISPER_CPU_THREADS`, default 5).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Após subida do processo, `/health` responde consistentemente confirmando modelo carregado (100% das tentativas em janela de 5 minutos pós-start).
-- **SC-002**: Utterance de 10–15 segundos transcreve em tempo significativamente menor que 120 segundos (limite do timeout n8n), em hardware alvo (Kron Mini K1, CPU-only).
-- **SC-003**: Em teste com áudio real da campanha, nomes próprios de personagens e locais são reconhecidos em taxa aceitável para o GM (validação manual piloto — critério qualitativo documentado no teste).
-- **SC-004**: Workflow n8n completa transcrição de sessão piloto (≥20 utterances) sequencialmente sem reiniciar o serviço.
-- **SC-005**: n8n em Docker alcança o serviço via `host.docker.internal:8008` com 0 erros de conexão em teste de integração documentado.
-- **SC-006**: Segunda utterance da mesma sessão é processada mais rápido que recarregar modelo do zero (evidência: tempo total de sessão compatível com modelo residente em memória).
+- **SC-001**: `/health` responde ok após startup com modelo carregado (regressão).
+- **SC-002**: `/transcribe` com `.ogg` real retorna texto coerente em português (regressão).
+- **SC-003**: `/transcribe` com caminho inexistente retorna 404 com mensagem clara (regressão).
+- **SC-004**: Serviço acessível via `host.docker.internal` a partir de container Docker na mesma máquina (regressão / gate de produção).
+- **SC-005**: Com default `WHISPER_CPU_THREADS=5`, uma sessão completa na ordem de ~2.000 utterances NÃO deixa a CPU saturada a ponto de outros serviços do servidor ficarem perceptivelmente lentos (validação com `htop` em teste real).
+- **SC-006**: Após a atualização, o serviço inicia com `cpu_threads=5` sem exigir configuração manual quando a variável está ausente.
 
 ## Assumptions
 
-- Único consumidor do serviço é o workflow n8n "Cronista - Transcrição da Sessão" — não há usuários humanos diretos.
-- Arquivos de áudio já existem no host no caminho informado (gravados pelo Cronista em `/opt/apps/cronista/recordings/...`).
-- Idioma padrão das sessões é português (`pt`).
-- Diarização (quem falou) já é resolvida pela segmentação por usuário do Cronista — o serviço só transcreve áudio.
-- Não há tradução — transcreve no idioma informado.
-- Sem autenticação no MVP — isolamento depende de firewall restringindo porta 8008 à bridge Docker e localhost.
-- Modelo `small` + `int8` é ponto de partida; upgrade para `medium` é decisão operacional após teste de qualidade.
-- n8n chama `/transcribe` sequencialmente (uma utterance por vez) — sem paralelismo no MVP.
-- Timeout HTTP de 120s no n8n é suficiente para utterances típicas; utterances anormalmente longas podem exigir ajuste futuro.
-- Existe protótipo funcional (`main.py`) como referência de implementação, sujeito a revisão formal nesta feature.
+- Stack e layout atuais (`whisper-service/whisper_service/`) permanecem a base.
+- n8n continua chamando `/transcribe` sequencialmente.
+- Default 5 threads é orçamento adequado ao host compartilhado; operador pode ajustar via env.
+- “Perceptivelmente lentos” é julgamento do operador com `htop` + uso real de Foundry/Bertroldo durante o lote.
+- Sem autenticação permanece restrição conhecida (firewall), não pendência.
+- Prefixo de path (`WHISPER_ALLOWED_PATH_PREFIX`) permanece como proteção; fora do texto mínimo da demanda, mas já em produção.
 
 ## Out of Scope
 
-- Upload de arquivo binário via HTTP.
-- Fila de processamento / múltiplos workers concorrentes.
-- Interface web ou dashboard.
-- Suporte a GPU (evolução futura com hardware dedicado).
-- Autenticação por token ou API key (revisitar se exposição de rede mudar).
-- Diarização ou identificação de falante.
-- Tradução para outro idioma.
-- Retenção ou limpeza de arquivos transcritos.
-- Alteração do contrato de gravação do Cronista ou do webhook n8n de encerramento de sessão.
+- Upload HTTP de áudio.
+- Fila / concorrência real / múltiplos workers.
+- GPU.
+- Diarização e tradução.
+- Mudança de contrato de request/response do `/transcribe`.
+- Autenticação por token.
 
 ## Dependencies
 
-- **Cronista**: produz utterances `.ogg` e `speaking_log.jsonl` consumidos pelo workflow n8n.
-- **n8n**: orquestra chamadas sequenciais a `/transcribe` e montagem do transcript final.
-- **Infraestrutura host**: systemd, venv Python isolado, `ffmpeg`/libs de áudio se necessário para decodificação de formatos de entrada.
-- **Rede Docker**: `extra_hosts` no compose do n8n para resolução de `host.docker.internal`.
-- **Firewall (ufw)**: regra restritiva na porta 8008 — sub-rede bridge Docker + localhost (sub-rede exata confirmada no deploy).
+- faster-whisper / CTranslate2 (`cpu_threads` no construtor de `WhisperModel`).
+- Cronista (artefatos `.ogg`) e n8n (consumidor).
+- Host compartilhado com Foundry, Bertroldo, blog, n8n Docker.
 
-## Open Questions (resolved by defaults in this spec)
+## Open Questions (resolved by defaults)
 
-| Tema | Decisão provisória |
-|------|-------------------|
-| Tamanho de modelo definitivo | `small` default; validar com áudio real; escalar via env se qualidade insuficiente |
-| Regra de firewall exata | Confirmar sub-rede com `docker network inspect bridge` no deploy; documentar em quickstart |
-| Timeout n8n vs utterances problemáticas | 120s mantido; workflow MUST tratar erro HTTP e continuar ou marcar utterance falha |
+| Tema | Decisão |
+|------|---------|
+| Default de threads | **5** (demanda) |
+| Expor `cpu_threads` no `/health` | Não obrigatório nesta atualização; demanda não exige |
+| Valor máximo de threads | Sem teto rígido; documentar anti-padrão > núcleos do host |

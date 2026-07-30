@@ -11,7 +11,26 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Executar spike DAVE no ambiente real e registrar verdict em `specs/002-python-pycord-migration/contracts/spike-acceptance.md`
 - Validar quickstart manual completo (Discord ao vivo)
 - Confirmar captura de áudio e estabilidade em sessão prolongada
-- Validar whisper-service em produção (integração n8n Docker, T028–T029)
+- Validar whisper-service Phase E em produção (SC-005: lote ~2.000 utterances + convivência CPU)
+
+---
+
+## [0.2.1] - 2026-07-30
+
+> **Status**: limite de threads CPU no whisper-service — aguardando validação Phase E em produção (SC-005).
+
+### Added
+
+- **`WHISPER_CPU_THREADS`** — default `5`; passado a `WhisperModel(..., cpu_threads=...)` para não saturar o host compartilhado (Foundry/Bertroldo/n8n) durante lotes longos (`whisper-service/whisper_service/config.py`, `transcriber.py`)
+- **Quickstart Phase E** — validação de convivência CPU com lote longo + monitoramento do host (`whisper-service/quickstart.md`)
+- **Spec/plan atualizados** a partir de `docs/demanda-whisper-service.md` (FR-015–017, SC-005/006)
+
+### Changed
+
+- Validação de `WHISPER_CPU_THREADS`: inteiro ≥ 1; valores inválidos falham no startup
+- `.env.example` e README documentam o orçamento de CPU e o anti-padrão (threads > núcleos do host)
+- Suite de testes do whisper-service: **19** casos (inclui default/custom/rejeição de `cpu_threads`)
+- Versão do pacote `whisper-service` → `0.2.1`
 
 ---
 

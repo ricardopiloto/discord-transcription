@@ -19,7 +19,7 @@ Referências: [spec.md](./spec.md) · [research.md](./research.md) · [data-mode
 
 ## Phase A — Desenvolvimento local 🚦
 
-**Covers**: US1, US2, FR-001–FR-008, SC-001, SC-002
+**Covers**: US1, US2, FR-001–FR-008, FR-015–FR-016, SC-001, SC-002
 
 ### Setup
 
@@ -31,6 +31,7 @@ pip install -r requirements.txt
 
 cp .env.example .env
 # Ajustar WHISPER_ALLOWED_PATH_PREFIX para seu RECORDINGS_DIR local se necessário
+# WHISPER_CPU_THREADS=5  # default; não usar todos os núcleos do host
 ```
 
 ### Start (dev)
@@ -204,6 +205,24 @@ docker exec -it <n8n-container> curl -s http://host.docker.internal:8008/health
 - [ ] Qualidade aceitável para nomes da campanha
 - [ ] n8n alcança serviço via Docker
 - [ ] Firewall aplicado na porta 8008
+
+---
+
+## Phase E — Convivência CPU (atualização demanda) 🚦
+
+**Covers**: US5, FR-015, FR-016, SC-005, SC-006
+
+**Pré-requisito**: serviço com `WHISPER_CPU_THREADS=5` (ou ausente → default 5) implantado.
+
+1. Confirmar nos logs de startup que o modelo carregou com o limite de threads esperado.
+2. Manter Foundry / Bertroldo / outros serviços ativos.
+3. Disparar lote longo de `/transcribe` (sessão real ou replay ~centenas a ~2.000 utterances).
+4. Durante o lote, observar uso de CPU do host (`htop` ou equivalente):
+   - Esperado: whisper usa um subconjunto dos núcleos (orçamento ~5 threads), não 100% contínuo de todos os cores.
+   - Esperado: demais serviços permanecem responsivos (sem travamentos perceptíveis).
+5. Registrar resultado em `checklists/implementation-validation.md`.
+
+**Fail**: saturação total sustentada de CPU ou indisponibilidade perceptível de Foundry/Bertroldo atribuível ao whisper durante o lote.
 
 ---
 

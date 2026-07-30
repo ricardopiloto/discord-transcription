@@ -10,6 +10,10 @@ EnvironmentFile=/opt/apps/whisper-service/.env
 ExecStart=/opt/apps/whisper-service/.venv/bin/python -m whisper_service
 Restart=on-failure
 RestartSec=30
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+CPUWeight=50
 
 # Modelo Whisper residente em RAM — evitar OOM kill silencioso
 MemoryMax=4G

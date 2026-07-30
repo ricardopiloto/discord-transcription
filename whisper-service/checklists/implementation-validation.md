@@ -2,14 +2,15 @@
 
 **Purpose**: Track quickstart scenarios and manual gates before production cutover  
 **Created**: 2026-07-12  
+**Updated**: 2026-07-30  
 **Feature**: [spec.md](../spec.md)
 
 ## Automated (CI/local)
 
 | Check | Command | Status |
 |-------|---------|--------|
-| Unit tests | `cd whisper-service && pytest tests/ -v` | ☑ 15 passed |
-| Config defaults | `test_config.py` | ☑ |
+| Unit tests | `cd whisper-service && pytest tests/ -v` | ☑ 19 passed (2026-07-30) |
+| Config defaults | `test_config.py` (incl. `cpu_threads=5`) | ☑ |
 | Path validation | `test_paths.py` | ☑ |
 | Health contract | `test_health.py` | ☑ |
 | Transcribe contract | `test_transcribe.py` | ☑ |
@@ -36,8 +37,8 @@
 |------|-------|--------|
 | `extra_hosts` in n8n compose | FR-011 | ☐ |
 | URL `host.docker.internal:8008/transcribe` | FR-011 | ☐ |
-| curl health from n8n container | SC-005 | ☐ |
-| One transcribe from container | SC-005 | ☐ |
+| curl health from n8n container | SC-004 | ☐ |
+| One transcribe from container | SC-004 | ☐ |
 | ufw rules applied | Assumptions | ☐ |
 
 ## Quickstart Phase D — End-to-end
@@ -47,7 +48,24 @@
 | Session ≥20 utterances sequential | SC-004 | ☐ |
 | GM quality review (PJ names) | SC-003 | ☐ |
 
+## Quickstart Phase E — Convivência CPU (demanda 2026-07-30)
+
+| Step | FR/SC | Status |
+|------|-------|--------|
+| `WHISPER_CPU_THREADS` ausente → default 5 no startup | FR-008, FR-016, SC-006 | ☐ |
+| Log de load inclui `cpu_threads` | FR-015 | ☐ |
+| Lote longo (~centenas a ~2.000 utterances) sem saturação total de CPU | FR-015, SC-005 | ☐ |
+| Foundry/Bertroldo permanecem responsivos durante o lote | SC-005 | ☐ |
+
+## Local regression (2026-07-30)
+
+| Check | Status |
+|-------|--------|
+| `pytest tests/ -v` após `cpu_threads` | ☑ 19 passed |
+| Deploy unit `python -m whisper_service` (workers via `__main__`) | ☑ confirmado |
+
 ## Notes
 
-- Phase A–D require faster-whisper model download on first run (~500MB for `small`).
-- Prototype `main.py` externo ao repo: N/A — implementação nova em `whisper_service/`.
+- Phase A–E require faster-whisper model download on first run (~500MB for `small`).
+- Prototype `main.py` externo ao repo: N/A — implementação em `whisper_service/`.
+- Phase E é gate de produção (Constitution II) — não substituível por unit test.

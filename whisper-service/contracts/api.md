@@ -82,6 +82,7 @@ Verifica disponibilidade e configuração do modelo carregado.
 
 - **Timeout recomendado (cliente n8n)**: 120s por utterance
 - **Concorrência**: MVP assume chamadas sequenciais; serviço roda com worker único
+- **CPU threads**: `WHISPER_CPU_THREADS` (default `5`) limita OpenMP/CTranslate2 — ver [data-model.md](../data-model.md)
 - **Autenticação**: nenhuma — isolamento por firewall na porta 8008
 - **Content-Type**: sempre `application/json`
 

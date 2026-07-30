@@ -130,3 +130,7 @@ Esperado: `{ "status": "ok", "model": "small", "compute_type": "int8" }`
 O workflow MUST processar utterances **sequencialmente** (uma por vez) no MVP — alinhado a `uvicorn --workers 1` e modelo singleton em RAM.
 
 Paralelismo futuro exige fila ou múltiplos workers (fora de escopo).
+
+## CPU budget (host compartilhado)
+
+O whisper-service MUST limitar threads via `WHISPER_CPU_THREADS` (default **5**) para não saturar Foundry/Bertroldo/blog durante lotes longos. Ver quickstart Phase E e SC-005.

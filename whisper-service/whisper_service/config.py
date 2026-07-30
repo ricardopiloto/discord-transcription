@@ -27,6 +27,13 @@ def _parse_int(name: str, fallback: int) -> int:
         raise ValueError(f"Variável {name} deve ser um número inteiro") from exc
 
 
+def _parse_cpu_threads(name: str, fallback: int) -> int:
+    value = _parse_int(name, fallback)
+    if value < 1:
+        raise ValueError(f"Variável {name} deve ser um inteiro ≥ 1 (recebido: {value})")
+    return value
+
+
 def _require_choice(name: str, value: str, allowed: frozenset[str]) -> str:
     if value not in allowed:
         allowed_list = ", ".join(sorted(allowed))
@@ -38,6 +45,7 @@ def _require_choice(name: str, value: str, allowed: frozenset[str]) -> str:
 class Config:
     model_size: str
     compute_type: str
+    cpu_threads: int
     host: str
     port: int
     allowed_path_prefix: str
@@ -57,6 +65,7 @@ def load_config() -> Config:
     return Config(
         model_size=model_size,
         compute_type=compute_type,
+        cpu_threads=_parse_cpu_threads("WHISPER_CPU_THREADS", 5),
         host=os.environ.get("WHISPER_HOST", "0.0.0.0"),
         port=_parse_int("WHISPER_PORT", 8008),
         allowed_path_prefix=os.environ.get(
