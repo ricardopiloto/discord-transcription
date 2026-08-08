@@ -87,3 +87,9 @@ Verifica disponibilidade e configuração do modelo carregado.
 - **Content-Type**: sempre `application/json`
 
 Ver também: [n8n-integration.md](./n8n-integration.md)
+
+---
+
+## Session async (v2)
+
+Endpoints de lote por sessão: ver [`specs/003-whisper-session-async/contracts/api.md`](../../specs/003-whisper-session-async/contracts/api.md) (`POST /transcribe-session`, `GET /status/{session_id}`, callback outbound).

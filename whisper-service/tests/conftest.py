@@ -21,6 +21,9 @@ def recordings_prefix(tmp_path, monkeypatch):
 
 @pytest.fixture
 def ready_client(recordings_prefix):
+    from whisper_service.session_store import reset_store_for_tests
+
+    reset_store_for_tests()
     with patch("whisper_service.transcriber.load"), patch(
         "whisper_service.transcriber.is_ready_state", return_value=True
     ):
@@ -28,10 +31,14 @@ def ready_client(recordings_prefix):
 
         with TestClient(app) as client:
             yield client
+    reset_store_for_tests()
 
 
 @pytest.fixture
 def loading_client(recordings_prefix):
+    from whisper_service.session_store import reset_store_for_tests
+
+    reset_store_for_tests()
     with patch("whisper_service.transcriber.load"), patch(
         "whisper_service.transcriber.is_ready_state", return_value=False
     ):
@@ -39,3 +46,4 @@ def loading_client(recordings_prefix):
 
         with TestClient(app) as client:
             yield client
+    reset_store_for_tests()

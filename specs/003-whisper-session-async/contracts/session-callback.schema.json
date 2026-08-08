@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "whisper-service/session-callback.json",
+  "title": "SessionCallbackPayload",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "status",
+        "output_path",
+        "total_utterances",
+        "utterances_com_texto",
+        "channel_id"
+      ],
+      "properties": {
+        "session_id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "const": "done" },
+        "output_path": { "type": "string", "minLength": 1 },
+        "total_utterances": { "type": "integer", "minimum": 0 },
+        "utterances_com_texto": { "type": "integer", "minimum": 0 },
+        "channel_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "status", "error", "channel_id"],
+      "properties": {
+        "session_id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "const": "failed" },
+        "error": { "type": "string", "minLength": 1 },
+        "total_utterances": { "type": "integer", "minimum": 0 },
+        "channel_id": { "type": "string", "minLength": 1 }
+      }
+    }
+  ]
+}

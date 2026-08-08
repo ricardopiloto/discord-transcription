@@ -27,7 +27,21 @@ python -m whisper_service
 | Método | Path | Descrição |
 |--------|------|-----------|
 | GET | `/health` | Status e modelo carregado |
-| POST | `/transcribe` | `{audio_path, language}` → `{text, language, duration_s}` |
+| POST | `/transcribe` | Utterance única (debug/v1): `{audio_path, language}` → `{text, language, duration_s}` |
+| POST | `/transcribe-session` | Lote de sessão (fluxo principal): 202 + processamento em background |
+| GET | `/status/{session_id}` | Progresso / resultado em memória |
+
+Contrato sessão: [`specs/003-whisper-session-async/contracts/api.md`](../specs/003-whisper-session-async/contracts/api.md)
+
+### Fluxo por sessão (v2)
+
+1. n8n chama `POST /transcribe-session` com paths, participantes e `callback_url`
+2. Serviço responde **202** imediatamente (ou **409** se a mesma sessão já está `in_progress`)
+3. Worker em thread lê `speaking_log.jsonl`, transcreve com idioma fixo `pt`, escreve `transcricao.txt`
+4. `POST` no `callback_url` (3 tentativas, backoff 2s/5s/10s)
+5. Acompanhar com `GET /status/{session_id}`
+
+Paths `recordings_path` / `speaking_log_path` MUST estar sob `WHISPER_ALLOWED_PATH_PREFIX`.
 
 ## Configuração
 
@@ -38,7 +52,7 @@ python -m whisper_service
 | `WHISPER_CPU_THREADS` | `5` | Threads OpenMP/CTranslate2 por chamada — limita saturação do host compartilhado |
 | `WHISPER_HOST` | `0.0.0.0` | Bind address (obrigatório para n8n Docker) |
 | `WHISPER_PORT` | `8008` | Porta HTTP |
-| `WHISPER_ALLOWED_PATH_PREFIX` | `/opt/apps/cronista/recordings/` | Prefixo permitido para `audio_path` |
+| `WHISPER_ALLOWED_PATH_PREFIX` | `/opt/apps/cronista/recordings/` | Prefixo permitido para `audio_path` e paths de sessão |
 
 **Anti-padrão**: `WHISPER_CPU_THREADS` maior que o número de núcleos do host pode piorar latência e convivência com Foundry/Bertroldo/n8n. Prefira o default `5` ou um valor menor.
 

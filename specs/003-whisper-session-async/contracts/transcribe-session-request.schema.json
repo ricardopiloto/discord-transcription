@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "whisper-service/transcribe-session-request.json",
+  "title": "SessionTranscribeRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "session_id",
+    "recordings_path",
+    "speaking_log_path",
+    "participants",
+    "channel_id",
+    "callback_url"
+  ],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recordings_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute session directory on host"
+    },
+    "speaking_log_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to speaking_log.jsonl"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["user_id", "display_name"],
+        "properties": {
+          "user_id": { "type": "string", "minLength": 1 },
+          "display_name": { "type": "string" },
+          "utterance_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "channel_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "callback_url": {
+      "type": "string",
+      "minLength": 1,
+      "format": "uri",
+      "description": "http or https webhook URL"
+    }
+  }
+}

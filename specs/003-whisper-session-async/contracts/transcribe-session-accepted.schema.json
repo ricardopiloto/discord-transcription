@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "whisper-service/transcribe-session-accepted.json",
+  "title": "SessionAcceptedResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "session_id"],
+  "properties": {
+    "status": { "type": "string", "const": "accepted" },
+    "session_id": { "type": "string", "minLength": 1 }
+  }
+}

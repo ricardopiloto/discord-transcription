@@ -134,3 +134,22 @@ Paralelismo futuro exige fila ou múltiplos workers (fora de escopo).
 ## CPU budget (host compartilhado)
 
 O whisper-service MUST limitar threads via `WHISPER_CPU_THREADS` (default **5**) para não saturar Foundry/Bertroldo/blog durante lotes longos. Ver quickstart Phase E e SC-005.
+---
+
+## Cutover — fluxo por sessão (v2)
+
+Substituir o loop HTTP por utterance por **uma** chamada de sessão + webhook de conclusão.
+
+| Setting | Value |
+|---------|-------|
+| Method | POST |
+| URL | `http://host.docker.internal:8008/transcribe-session` |
+| Timeout | 5000–10000 ms (só o aceite 202) |
+| Body | Ver `specs/003-whisper-session-async/contracts/api.md` |
+
+Após 202:
+
+1. (Opcional) Poll `GET /status/{session_id}` até `done`/`failed`
+2. Ou esperar webhook no `callback_url` com payload `status=done|failed`
+
+Manter `POST /transcribe` apenas para debug pontual. Remover o node de loop por utterance do workflow principal após validar uma sessão real.

@@ -1,4 +1,4 @@
-"""Filesystem path validation for transcribe requests."""
+"""Filesystem path validation for transcribe and session requests."""
 
 from __future__ import annotations
 
@@ -6,10 +6,11 @@ from pathlib import Path
 
 
 class PathValidationError(Exception):
-    """Raised when audio_path fails security or format checks."""
+    """Raised when a path fails security or format checks."""
 
 
-def validate_audio_path(path: str, allowed_prefix: str) -> Path:
+def validate_allowed_path(path: str, allowed_prefix: str) -> Path:
+    """Resolve and ensure ``path`` is absolute and under ``allowed_prefix``."""
     if not path or not path.strip():
         raise PathValidationError("Caminho vazio")
 
@@ -28,3 +29,13 @@ def validate_audio_path(path: str, allowed_prefix: str) -> Path:
         raise PathValidationError(f"Caminho não permitido: {path}") from exc
 
     return resolved
+
+
+def validate_audio_path(path: str, allowed_prefix: str) -> Path:
+    """Alias for utterance audio paths (v1 contract)."""
+    return validate_allowed_path(path, allowed_prefix)
+
+
+def validate_session_path(path: str, allowed_prefix: str) -> Path:
+    """Validate ``recordings_path`` / ``speaking_log_path`` under the allowed prefix."""
+    return validate_allowed_path(path, allowed_prefix)

@@ -6,12 +6,32 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Unreleased]
 
-### Planejado
+### Planejado (validação operacional — código já entregue nas releases abaixo)
 
-- Executar spike DAVE no ambiente real e registrar verdict em `specs/002-python-pycord-migration/contracts/spike-acceptance.md`
-- Validar quickstart manual completo (Discord ao vivo)
-- Confirmar captura de áudio e estabilidade em sessão prolongada
-- Validar whisper-service Phase E em produção (SC-005: lote ~2.000 utterances + convivência CPU)
+- Executar spike DAVE no ambiente real e registrar verdict em `specs/002-python-pycord-migration/contracts/spike-acceptance.md` (script existe; verdict ainda `PENDING`)
+- Validar quickstart manual completo do Cronista (Discord ao vivo) e estabilidade em sessão prolongada
+- Validar whisper-service Phase E em produção — SC-005 lote ~2.000 utterances + convivência CPU (`htop`); código `WHISPER_CPU_THREADS` já em **0.2.1**
+- Cutover n8n + validar quickstart sessão-async com modelo Whisper real e webhook em produção; endpoints já em **0.3.0** (suite unit/contract ok)
+
+---
+
+## [0.3.0] - 2026-08-08
+
+> **Status**: whisper-service v2 (lote por sessão) implementado — aguardando cutover do workflow n8n e validação com áudio real.
+
+### Added
+
+- **`POST /transcribe-session`** — aceite 202, processamento em background (`ThreadPoolExecutor` 1 worker), escrita de `transcricao.txt`, callback ao n8n
+- **`GET /status/{session_id}`** — progresso incremental em memória (`in_progress` / `done` / `failed`)
+- **Lock 409** — rejeita segunda solicitação da mesma `session_id` enquanto `in_progress`; reprocessamento após `done`/`failed` permitido
+- Módulos `session_store`, `session_worker`, `transcript_format`, `callback` em `whisper-service/whisper_service/`
+- Contratos e design em `specs/003-whisper-session-async/`
+- Suite de testes expandida (unit + contract) para sessão async
+
+### Changed
+
+- Versão do pacote `whisper-service` → `0.3.0`
+- Idioma do lote de sessão fixo em `pt`; linhas sem texto usam marcador `(silêncio)`
 
 ---
 

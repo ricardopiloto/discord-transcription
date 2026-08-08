@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from whisper_service.paths import PathValidationError, validate_audio_path
+from whisper_service.paths import (
+    PathValidationError,
+    validate_audio_path,
+    validate_session_path,
+)
 
 
 def test_validate_accepts_path_under_prefix(tmp_path):
@@ -38,3 +42,20 @@ def test_validate_rejects_outside_prefix(tmp_path):
     outside.write_bytes(b"x")
     with pytest.raises(PathValidationError, match="não permitido"):
         validate_audio_path(str(outside), str(prefix) + "/")
+
+
+def test_validate_session_path_rejects_outside_dir(tmp_path):
+    prefix = tmp_path / "recordings"
+    prefix.mkdir()
+    outside = tmp_path / "other" / "session"
+    outside.mkdir(parents=True)
+    with pytest.raises(PathValidationError, match="não permitido"):
+        validate_session_path(str(outside), str(prefix) + "/")
+
+
+def test_validate_session_path_accepts_session_dir(tmp_path):
+    prefix = tmp_path / "recordings"
+    session = prefix / "20260807-231300"
+    session.mkdir(parents=True)
+    resolved = validate_session_path(str(session), str(prefix) + "/")
+    assert resolved == session.resolve()
