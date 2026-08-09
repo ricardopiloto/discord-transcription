@@ -1,4 +1,4 @@
-"""n8n session-end webhook and mid-session alert webhook."""
+"""n8n session-end webhook."""
 
 from __future__ import annotations
 
@@ -66,66 +66,6 @@ async def notify_session_ended(
         recording_gaps_path=recording_gaps_path,
     )
     return await _post_with_retries(url, payload, label="session-end")
-
-
-async def notify_mid_session_alert(config: Config, payload: dict[str, Any]) -> bool:
-    url = config.alert_webhook_url
-    if not url:
-        logger.warning(
-            "[webhook] CRONISTA_ALERT_WEBHOOK_URL não configurada; alerta mid-session omitido"
-        )
-        return True
-    return await _post_with_retries(url, payload, label="mid-session")
-
-
-def build_mid_session_alert(
-    *,
-    event: str,
-    session_id: str,
-    channel_id: str,
-    guild_id: str,
-    channel_name: str,
-    gap_started_at: str,
-    message: str | None = None,
-    gap_duration_s: float | None = None,
-    reconnect_attempts: int | None = None,
-    success: bool | None = None,
-) -> dict[str, Any]:
-    if message is None:
-        if event == "dave_decrypt_detected":
-            message = (
-                f"⚠️ Cronista: falha de decriptação DAVE detectada no canal {channel_name}, "
-                "tentando reconectar..."
-            )
-        elif event == "dave_decrypt_recovered":
-            duration = gap_duration_s if gap_duration_s is not None else 0.0
-            message = (
-                f"✅ Reconexão bem-sucedida, gravação retomada após {duration:.0f}s"
-            )
-        elif event == "dave_decrypt_failed":
-            n = reconnect_attempts if reconnect_attempts is not None else 0
-            message = (
-                f"🔴 Falha ao reconectar após {n} tentativas — "
-                f"gravação da sessão comprometida a partir de {gap_started_at}"
-            )
-        else:
-            message = f"Cronista alert: {event}"
-
-    body: dict[str, Any] = {
-        "event": event,
-        "session_id": session_id,
-        "channel_id": channel_id,
-        "guild_id": guild_id,
-        "message": message,
-        "gap_started_at": gap_started_at,
-    }
-    if gap_duration_s is not None:
-        body["gap_duration_s"] = gap_duration_s
-    if reconnect_attempts is not None:
-        body["reconnect_attempts"] = reconnect_attempts
-    if success is not None:
-        body["success"] = success
-    return body
 
 
 async def _post_with_retries(url: str, payload: dict[str, Any], *, label: str) -> bool:

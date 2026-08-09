@@ -17,7 +17,7 @@ from cronista.recording.sink import IncrementalUtteranceSink
 from cronista.recording.speaking_log import SpeakingLog
 from cronista.recording.storage import ensure_session_dir, ensure_user_dir, format_session_id, write_session_json
 from cronista.session import Participant, SessionData
-from cronista.webhook import build_mid_session_alert, notify_mid_session_alert
+from cronista.telegram_alert import notify_dave_alert, schedule_dave_alert
 
 logger = logging.getLogger(__name__)
 
@@ -211,16 +211,13 @@ class SessionManager:
     async def _run_dave_recovery(self) -> None:
         recovery = self.dave_recovery
         gap_started = recovery.gap_started_at or ""
-        await notify_mid_session_alert(
+        # Detection alert must not delay reconnect (Telegram retries run in parallel).
+        schedule_dave_alert(
             self.config,
-            build_mid_session_alert(
-                event="dave_decrypt_detected",
-                session_id=recovery.session_id,
-                channel_id=recovery.channel_id,
-                guild_id=recovery.guild_id,
-                channel_name=recovery.channel_name,
-                gap_started_at=gap_started,
-            ),
+            event="dave_decrypt_detected",
+            channel_name=recovery.channel_name,
+            channel_id=recovery.channel_id,
+            gap_started_at=gap_started,
         )
 
         max_attempts = self.config.reconnect_max_attempts
@@ -257,19 +254,14 @@ class SessionManager:
                         duration = max(0.0, (end_dt - start_dt).total_seconds())
                     except ValueError:
                         duration = 0.0
-                await notify_mid_session_alert(
+                await notify_dave_alert(
                     self.config,
-                    build_mid_session_alert(
-                        event="dave_decrypt_recovered",
-                        session_id=recovery.session_id,
-                        channel_id=recovery.channel_id,
-                        guild_id=recovery.guild_id,
-                        channel_name=recovery.channel_name,
-                        gap_started_at=gap_started,
-                        gap_duration_s=duration,
-                        reconnect_attempts=attempt,
-                        success=True,
-                    ),
+                    event="dave_decrypt_recovered",
+                    channel_name=recovery.channel_name,
+                    channel_id=recovery.channel_id,
+                    gap_started_at=gap_started,
+                    gap_duration_s=duration,
+                    reconnect_attempts=attempt,
                 )
                 logger.info("[dave_recovery] Recuperação OK na tentativa %s", attempt)
                 return
@@ -282,18 +274,13 @@ class SessionManager:
 
         entry = recovery.finish_failed()
         attempts = entry.reconnect_attempts if entry else max_attempts
-        await notify_mid_session_alert(
+        await notify_dave_alert(
             self.config,
-            build_mid_session_alert(
-                event="dave_decrypt_failed",
-                session_id=recovery.session_id,
-                channel_id=recovery.channel_id,
-                guild_id=recovery.guild_id,
-                channel_name=recovery.channel_name,
-                gap_started_at=gap_started,
-                reconnect_attempts=attempts,
-                success=False,
-            ),
+            event="dave_decrypt_failed",
+            channel_name=recovery.channel_name,
+            channel_id=recovery.channel_id,
+            gap_started_at=gap_started,
+            reconnect_attempts=attempts,
         )
 
         vc = self.voice_client

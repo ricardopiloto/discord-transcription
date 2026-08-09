@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cronista.local/schemas/005-telegram-sendmessage.json",
+  "title": "Telegram Bot API sendMessage request body (Cronista DAVE alerts)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["chat_id", "text"],
+  "properties": {
+    "chat_id": {
+      "description": "Destination chat or group id (string or number as accepted by Telegram)",
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "integer" }
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "description": "Exact DAVE alert template with placeholders filled"
+    }
+  }
+}

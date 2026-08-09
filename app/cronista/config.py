@@ -34,7 +34,9 @@ class Config:
     utterance_silence_ms: int
     auto_end_empty_channel_ms: int
     n8n_webhook_url: str | None
-    alert_webhook_url: str | None
+    telegram_bot_token: str | None
+    telegram_chat_id: str | None
+    telegram_api_base: str
     dave_failure_threshold: int
     dave_failure_window_s: int
     reconnect_max_attempts: int
@@ -45,13 +47,18 @@ class Config:
 
 
 def load_config() -> Config:
+    api_base = (os.environ.get("CRONISTA_TELEGRAM_API_BASE") or "").strip()
+    if not api_base:
+        api_base = "https://api.telegram.org"
     return Config(
         discord_token=_require_env("DISCORD_TOKEN"),
         recordings_dir=Path(os.environ.get("RECORDINGS_DIR", "./recordings")).resolve(),
         utterance_silence_ms=_parse_int("UTTERANCE_SILENCE_MS", 1000),
         auto_end_empty_channel_ms=_parse_int("AUTO_END_EMPTY_CHANNEL_MS", 300_000),
         n8n_webhook_url=os.environ.get("N8N_WEBHOOK_URL") or None,
-        alert_webhook_url=os.environ.get("CRONISTA_ALERT_WEBHOOK_URL") or None,
+        telegram_bot_token=os.environ.get("CRONISTA_TELEGRAM_BOT_TOKEN") or None,
+        telegram_chat_id=os.environ.get("CRONISTA_TELEGRAM_CHAT_ID") or None,
+        telegram_api_base=api_base.rstrip("/"),
         dave_failure_threshold=_parse_int("CRONISTA_DAVE_FAILURE_THRESHOLD", 5),
         dave_failure_window_s=_parse_int("CRONISTA_DAVE_FAILURE_WINDOW_S", 10),
         reconnect_max_attempts=_parse_int("CRONISTA_RECONNECT_MAX_ATTEMPTS", 5),

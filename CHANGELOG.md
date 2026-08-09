@@ -12,13 +12,33 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Validar quickstart manual completo do Cronista (Discord ao vivo) e estabilidade em sessão prolongada
 - Validar whisper-service Phase E em produção — SC-005 lote ~2.000 utterances + convivência CPU (`htop`); código `WHISPER_CPU_THREADS` já em **0.2.1**
 - Cutover n8n + validar quickstart sessão-async com modelo Whisper real e webhook em produção; endpoints já em **0.3.0** (suite unit/contract ok)
-- Validar quickstart DAVE recovery em canal real (`specs/004-dave-decrypt-recovery/quickstart.md`); código em **0.4.0**
+- Validar quickstart DAVE recovery em canal real (`specs/004-dave-decrypt-recovery/quickstart.md`); código em **0.4.0** / alertas Telegram em **0.4.1**
+- Validar quickstart Telegram DAVE alerts (`specs/005-telegram-dave-alerts/quickstart.md`); código em **0.4.1**
+
+---
+
+## [0.4.1] - 2026-08-08
+
+> **Status**: alertas DAVE mid-session via Telegram Bot API — aguardando validação com bot/chat reais.
+
+### Added
+
+- Envio direto à Telegram Bot API (`sendMessage`) para detected / recovered / failed (`app/cronista/telegram_alert.py`)
+- Variáveis `CRONISTA_TELEGRAM_BOT_TOKEN`, `CRONISTA_TELEGRAM_CHAT_ID`, `CRONISTA_TELEGRAM_API_BASE`
+- Message Templates oficiais (duração `Xm Ys`, horário ISO-8601 UTC); alerta de detecção em paralelo à reconexão
+- Spec/plan/tasks em `specs/005-telegram-dave-alerts/`
+
+### Changed
+
+- Versão do monorepo → `0.4.1`
+- Removido canal mid-session `CRONISTA_ALERT_WEBHOOK_URL` (substituído por Telegram direto)
+- Webhook n8n de fim de sessão inalterado
 
 ---
 
 ## [0.4.0] - 2026-08-08
 
-> **Status**: recuperação automática de falhas DAVE implementada — aguardando validação em canal Discord real + webhook de alerta.
+> **Status**: recuperação automática de falhas DAVE implementada — aguardando validação em canal Discord real (alertas mid-session migrados para Telegram em **0.4.1**).
 
 ### Added
 
