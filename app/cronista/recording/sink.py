@@ -55,6 +55,7 @@ def wav_has_audio(wav_path: Path, threshold: int = PCM_SILENCE_THRESHOLD) -> boo
 
 OnParticipant = Callable[[str, str], Awaitable[None]]
 OnUtteranceComplete = Callable[[str], Awaitable[None]]
+OnDecodeSuccess = Callable[[], None]
 
 
 @dataclass
@@ -89,6 +90,7 @@ class IncrementalUtteranceSink(Sink):
         loop: asyncio.AbstractEventLoop,
         on_participant: OnParticipant,
         on_utterance_complete: OnUtteranceComplete,
+        on_decode_success: OnDecodeSuccess | None = None,
     ) -> None:
         super().__init__()
         self.session_dir = session_dir
@@ -101,6 +103,7 @@ class IncrementalUtteranceSink(Sink):
         self.loop = loop
         self.on_participant = on_participant
         self.on_utterance_complete = on_utterance_complete
+        self.on_decode_success = on_decode_success
 
         self.seq_counters: dict[str, int] = {}
         self.open_utterances: dict[str, OpenUtterance] = {}
@@ -232,6 +235,12 @@ class IncrementalUtteranceSink(Sink):
 
         if is_silent_pcm(pcm):
             return
+
+        if self.on_decode_success is not None:
+            try:
+                self.on_decode_success()
+            except Exception:
+                logger.exception("[recorder] on_decode_success falhou")
 
         self.packets_received += 1
         self.pcm_bytes_received += len(pcm)

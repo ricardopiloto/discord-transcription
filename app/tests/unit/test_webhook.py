@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,7 +9,7 @@ import pytest
 
 from cronista.config import Config
 from cronista.session import SessionData
-from cronista.webhook import notify_session_ended
+from cronista.webhook import build_payload, notify_session_ended
 
 BASE_SESSION = SessionData(
     session_id="20260710-220105",
@@ -22,14 +21,23 @@ BASE_SESSION = SessionData(
 )
 
 
-def _config(tmp_path: Path) -> Config:
-    return Config(
+def _config(tmp_path: Path, **overrides) -> Config:
+    base = dict(
         discord_token="test",
         recordings_dir=tmp_path,
         utterance_silence_ms=1000,
         auto_end_empty_channel_ms=300_000,
         n8n_webhook_url="https://example.com/webhook",
+        alert_webhook_url=None,
+        dave_failure_threshold=5,
+        dave_failure_window_s=10,
+        reconnect_max_attempts=5,
+        reconnect_backoff_s=3,
+        recovery_cooldown_s=60,
+        reconnect_validate_timeout_s=30,
     )
+    base.update(overrides)
+    return Config(**base)
 
 
 @pytest.mark.asyncio
@@ -77,12 +85,17 @@ async def test_webhook_returns_true_on_first_success(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_webhook_skips_when_url_not_configured(tmp_path: Path) -> None:
-    config = Config(
-        discord_token="test",
-        recordings_dir=tmp_path,
-        utterance_silence_ms=1000,
-        auto_end_empty_channel_ms=300_000,
-        n8n_webhook_url=None,
-    )
+    config = _config(tmp_path, n8n_webhook_url=None)
     ok = await notify_session_ended(config, BASE_SESSION)
     assert ok is True
+
+
+def test_build_payload_includes_gap_count(tmp_path: Path) -> None:
+    payload = build_payload(
+        BASE_SESSION,
+        tmp_path,
+        gap_count=2,
+        recording_gaps_path="/tmp/gaps.jsonl",
+    )
+    assert payload["gap_count"] == 2
+    assert payload["recording_gaps_path"] == "/tmp/gaps.jsonl"

@@ -26,6 +26,7 @@ def main() -> None:
         sys.exit(1)
 
     session_manager = SessionManager(config)
+    session_manager.ensure_hooks()
     bot = create_bot(config, session_manager)
     bot.run(config.discord_token)
 

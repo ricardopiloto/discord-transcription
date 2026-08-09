@@ -19,9 +19,12 @@ async def end_active_session(
     config: Config,
     session_manager: SessionManager,
     guild: discord.Guild,
-) -> tuple[SessionData, bool] | None:
+) -> tuple[SessionData, bool, int] | None:
     if not session_manager.is_recording:
         return None
+
+    gap_count = session_manager.gap_count()
+    gaps_path = session_manager.recording_gaps_path()
 
     session = await session_manager.end()
     if session is None:
@@ -30,15 +33,21 @@ async def end_active_session(
     if guild.voice_client:
         await guild.voice_client.disconnect(force=True)
 
-    webhook_ok = await notify_session_ended(config, session)
+    webhook_ok = await notify_session_ended(
+        config,
+        session,
+        gap_count=gap_count,
+        recording_gaps_path=gaps_path,
+    )
     if not webhook_ok:
         session.webhook_failed = True
         session_dir = config.recordings_dir / session.session_id
         await write_session_json(session_dir, session)
 
     logger.info(
-        "[session] Encerrada %s — webhook %s",
+        "[session] Encerrada %s — webhook %s — gaps=%s",
         session.session_id,
         "ok" if webhook_ok else "falhou",
+        gap_count,
     )
-    return session, webhook_ok
+    return session, webhook_ok, gap_count

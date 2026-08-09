@@ -12,6 +12,27 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Validar quickstart manual completo do Cronista (Discord ao vivo) e estabilidade em sessão prolongada
 - Validar whisper-service Phase E em produção — SC-005 lote ~2.000 utterances + convivência CPU (`htop`); código `WHISPER_CPU_THREADS` já em **0.2.1**
 - Cutover n8n + validar quickstart sessão-async com modelo Whisper real e webhook em produção; endpoints já em **0.3.0** (suite unit/contract ok)
+- Validar quickstart DAVE recovery em canal real (`specs/004-dave-decrypt-recovery/quickstart.md`); código em **0.4.0**
+
+---
+
+## [0.4.0] - 2026-08-08
+
+> **Status**: recuperação automática de falhas DAVE implementada — aguardando validação em canal Discord real + webhook de alerta.
+
+### Added
+
+- **Detecção de falhas de decriptação DAVE** — hook em `PacketDecryptor.decrypt_rtp` + reset no PCM OK do sink (`app/cronista/recording/dave_hooks.py`, `dave_recovery.py`)
+- **Reconexão completa** do canal de voz (disconnect + connect + warmup + `start_recording`), validação no 1º PCM OK, backoff e cooldown
+- **`recording_gaps.jsonl`** por sessão (UTC + ms relativos, motivo `dave_decrypt_failure`)
+- **Webhook mid-session** (`CRONISTA_ALERT_WEBHOOK_URL`) para detected/recovered/failed (Telegram via monitor externo)
+- Contagem de gaps no `!cronista encerrar` / `status` e campo aditivo `gap_count` no webhook n8n de fim
+- Spec/plan/tasks em `specs/004-dave-decrypt-recovery/`
+
+### Changed
+
+- Versão do monorepo → `0.4.0` (`app/cronista` e `whisper-service`)
+- Ao esgotar tentativas: sai do voz, mantém sessão aberta (sem auto-encerrar)
 
 ---
 

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cronista/recording-gaps.jsonl",
+  "title": "RecordingGap",
+  "description": "Uma linha do arquivo recording_gaps.jsonl (JSON Lines)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "session_id",
+    "started_at",
+    "finished_at",
+    "start_ms",
+    "end_ms",
+    "reason",
+    "reconnect_attempts",
+    "success"
+  ],
+  "properties": {
+    "session_id": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "start_ms": { "type": "integer", "minimum": 0 },
+    "end_ms": { "type": "integer", "minimum": 0 },
+    "reason": {
+      "type": "string",
+      "const": "dave_decrypt_failure"
+    },
+    "reconnect_attempts": { "type": "integer", "minimum": 0 },
+    "success": { "type": "boolean" }
+  }
+}

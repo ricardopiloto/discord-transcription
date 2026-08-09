@@ -85,15 +85,17 @@ async def handle_encerrar(
         await message.reply("Não há sessão em andamento.")
         return
 
-    session, webhook_ok = result
+    session, webhook_ok, gap_count = result
+    gaps_note = f" Gaps de captura: **{gap_count}**." if gap_count > 0 else ""
     if webhook_ok:
         await message.reply(
             f"Sessão `{session.session_id}` encerrada. Pipeline de transcrição notificado."
+            f"{gaps_note}"
         )
     else:
         await message.reply(
             f"Sessão `{session.session_id}` encerrada, mas a notificação ao n8n falhou "
-            "(marcado em session.json)."
+            f"(marcado em session.json).{gaps_note}"
         )
 
 
@@ -105,11 +107,20 @@ async def handle_status(message: discord.Message, session_manager: SessionManage
 
     elapsed = _format_duration(session_manager.elapsed_ms())
     participant_count = len(session.participants)
-    await message.reply(
-        f"**Gravando** — sessão `{session.session_id}`\n"
-        f"Duração: {elapsed}\n"
-        f"Participantes: {participant_count}"
-    )
+    lines = [
+        f"**Gravando** — sessão `{session.session_id}`",
+        f"Duração: {elapsed}",
+        f"Participantes: {participant_count}",
+    ]
+    recovery = session_manager.dave_recovery
+    if recovery.recovery_in_progress:
+        lines.append("Estado: recuperando falha DAVE…")
+    elif recovery.voice_compromised:
+        lines.append("Estado: captura comprometida (fora do voz) — use `!cronista encerrar`")
+    gap_count = session_manager.gap_count()
+    if gap_count > 0:
+        lines.append(f"Gaps de captura: {gap_count}")
+    await message.reply("\n".join(lines))
 
 
 async def handle_help(message: discord.Message) -> None:

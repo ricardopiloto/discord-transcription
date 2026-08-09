@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cronista/mid-session-alert.json",
+  "title": "MidSessionAlert",
+  "description": "Payload POST para CRONISTA_ALERT_WEBHOOK_URL",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event",
+    "session_id",
+    "channel_id",
+    "guild_id",
+    "message",
+    "gap_started_at"
+  ],
+  "properties": {
+    "event": {
+      "type": "string",
+      "enum": [
+        "dave_decrypt_detected",
+        "dave_decrypt_recovered",
+        "dave_decrypt_failed"
+      ]
+    },
+    "session_id": { "type": "string", "minLength": 1 },
+    "channel_id": { "type": "string", "minLength": 1 },
+    "guild_id": { "type": "string", "minLength": 1 },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable text for Telegram bridge"
+    },
+    "gap_started_at": { "type": "string", "format": "date-time" },
+    "gap_duration_s": { "type": "number", "minimum": 0 },
+    "reconnect_attempts": { "type": "integer", "minimum": 0 },
+    "success": { "type": "boolean" }
+  }
+}

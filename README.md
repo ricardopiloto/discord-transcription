@@ -4,7 +4,7 @@ Bot Discord para captura de voz em sessões de RPG. Grava o áudio de cada jogad
 
 Documentação de produto: [docs/PRD-bot-cronista-transcricao_v2.md](docs/PRD-bot-cronista-transcricao_v2.md).
 
-Changelog: [CHANGELOG.md](CHANGELOG.md) — versão atual **0.2.1**.
+Changelog: [CHANGELOG.md](CHANGELOG.md) — versão do monorepo **0.4.0**.
 
 ## Stack
 
@@ -86,7 +86,14 @@ cp .env.example .env
 | `DISCORD_TOKEN` | Token copiado no passo 2 |
 | `DISCORD_CLIENT_ID` | App ID (opcional; só referência/convite) |
 | `RECORDINGS_DIR` | `./recordings` (local) ou `/opt/apps/cronista/recordings` (produção) |
-| `N8N_WEBHOOK_URL` | URL do webhook n8n (opcional; se vazio, notificação é ignorada) |
+| `N8N_WEBHOOK_URL` | URL do webhook n8n ao encerrar (opcional) |
+| `CRONISTA_ALERT_WEBHOOK_URL` | Webhook mid-session para alertas DAVE → monitor/Telegram (opcional) |
+| `CRONISTA_DAVE_FAILURE_THRESHOLD` | Falhas consecutivas para disparar recovery (default `5`) |
+| `CRONISTA_DAVE_FAILURE_WINDOW_S` | Janela em segundos (default `10`) |
+| `CRONISTA_RECONNECT_MAX_ATTEMPTS` | Tentativas de reconnect completo (default `5`) |
+| `CRONISTA_RECONNECT_BACKOFF_S` | Base do backoff entre tentativas (default `3`) |
+| `CRONISTA_RECOVERY_COOLDOWN_S` | Cooldown após recovery OK (default `60`) |
+| `CRONISTA_RECONNECT_VALIDATE_TIMEOUT_S` | Timeout aguardando 1º PCM OK pós-connect (default `30`) |
 
 ### 6. Verificar
 
